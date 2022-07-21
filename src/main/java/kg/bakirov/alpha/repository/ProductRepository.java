@@ -52,41 +52,38 @@ public class ProductRepository {
 
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=1) and (CARDREF=Items.LOGICALREF))),0) AS purchaseprice, " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=2) and (CARDREF=Items.LOGICALREF))),0) AS saleprice, " +
-
+                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
+                    "AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) AND ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) AS puramount, " +
+                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) " +
+                    "AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) " +
+                    "AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) AS salamount," +
+                    "(ISNULL ((Select SUM(LINENET) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (7,8))) AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) " +"AND ((DATE_>='" + begdate + "') " +
+                    "AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) - " +
+                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (3))) AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) " +
+                    "AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0)) AS salcurr, " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='01.01.2022') AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022'))) and ((SOURCEINDEX=0) AND (IOCODE IN (1,2)))),0) AS puramount, " +
-
-                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) " +
-                    "AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (3,4)))),0) AS salamount," +
-
-                    "(ISNULL ((Select SUM(LINENET) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (7,8))) AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) AND ((DATE_>='01.01.2022') " +
-                    "AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (3,4)))),0) - " +
-                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (3))) AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) AND ((DATE_>='01.01.2022') " +
-                    "AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (1,2)))),0)) AS salcurr, " +
-
-                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) " +
-                    "AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (1,2)))),0) - " +
-                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) " +
-                    "AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (3,4)))),0) AS onhand, " +
-
-                    "(ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (3,4)))),0))* " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) AS onhand, " +
+                    "(ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
+                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0))* " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=1) and (CARDREF=Items.LOGICALREF))),0) as purchase_sum, " +
-
                     "(ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>=" + "'" + begdate + "') AND (DATE_<=" + "'" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and ((SOURCEINDEX=0) AND (IOCODE IN (3,4)))),0)) * " +
+                    "AND (CANCELLED=0) AND ((DATE_>=" + "'" + begdate + "') AND (DATE_<=" + "'" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0)) * " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=2) and (CARDREF=Items.LOGICALREF))),0) as sale_sum " +
-
                     "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS As Items " +
-
-                    "WHERE  (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and  ((SOURCEINDEX=0) AND (IOCODE IN (1,2)))),0) - " +
+                    "WHERE  (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
+                    "AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='01.01.2022') AND (DATE_<='31.12.2022')) and  ((SOURCEINDEX=0) AND (IOCODE IN (3,4)))),0)<>0) " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0)<>0) " +
                     "Order BY code";
 
             Statement statement = connection.createStatement();
@@ -143,7 +140,7 @@ public class ProductRepository {
                     " 21, 22, 23, 24, 25, 35, 36, 37, 38, 39, 51)  ))), 0), 0) as onhand,  " +
                     "ROUND(ISNULL((SELECT SUM(CASE STRNS.OUTCOSTCURR WHEN 0 THEN (STRNS.TOTAL-STRNS.DISTCOST+STRNS.DIFFPRICE)/STRNS.REPORTRATE ELSE STRNS.OUTCOSTCURR*STRNS.UINFO2/STRNS.UINFO1*STRNS.AMOUNT END) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS  WHERE " +
-                    "(STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.REPORTRATE > 0.0" + GLOBAL_FIRM_NO + ") " +
+                    "(STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.REPORTRATE > 0.0 ) " +
                     "AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) " +
                     "AND (STRNS.LPRODSTAT <> 2) AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND (STRNS.IOCODE < 3) " +
                     "AND (STRNS.TRCODE IN (1, 2, 3, 5, 13, 14, 15, 16, 17, 18, 19, 25, 26, 30, 31, 32, 33, 34, 50))), 0)+ " +
@@ -188,14 +185,14 @@ public class ProductRepository {
 
     /* ---------------------------------------- Список документов ------------------------------------------------ */
 
-    public List<ProductFiche> getProductFiche(int firmno, int periodno) {
+    public List<ProductFiche> getProductFiche(int firmno, int periodno, String begdate, String enddate, int sourceindex ) {
 
         utility.CheckCompany(firmno, periodno);
         List<ProductFiche> itemsFicheList = null;
 
         try (Connection connection = mainRepository.getConnection()) {
 
-            String sqlQuery = "SELECT STFIC.TRCODE as item_trcode, " +
+            String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE as item_trcode, " +
                     "STFIC.FICHENO AS item_ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS item_date, CLNTC.CODE as item_clientcode, " +
                     "CLNTC.DEFINITION_ as item_clientname, ROUND(CASE STFIC.IOCODE WHEN 1 THEN STFIC.GROSSTOTAL ELSE -STFIC.GROSSTOTAL END, 0) AS item_gross, " +
                     "ROUND(STFIC.TOTALDISCOUNTS, 0) AS item_discounts, ROUND(STFIC.TOTALEXPENSES, 0) AS item_expenses, " +
@@ -209,7 +206,8 @@ public class ProductRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STFIC.CANCELLED = 0) AND ((STFIC.STATUS IN (0,1)) OR (STFIC.TRCODE IN (11,12,13,14,25,26,50,51))) AND (STFIC.SOURCEINDEX = 0) " +
+                    "WHERE (STFIC.CANCELLED = 0) AND ((STFIC.STATUS IN (0,1)) OR (STFIC.TRCODE IN (11,12,13,14,25,26,50,51))) AND (STFIC.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STFIC.DATE_>=" + "'" + begdate + "') AND (STFIC.DATE_<=" + "'" + enddate + "')) " +
                     "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 
             Statement statement = connection.createStatement();
@@ -221,8 +219,8 @@ public class ProductRepository {
 
                 itemsFicheList.add(
                         new ProductFiche(
-                                resultSet.getString("item_trcode"),
-                                resultSet.getLong("item_ficheno"),
+                                resultSet.getLong("item_trcode"),
+                                resultSet.getString("item_ficheno"),
                                 resultSet.getString("item_date"),
                                 resultSet.getString("item_clientcode"),
                                 resultSet.getString("item_clientname"),
