@@ -1,16 +1,16 @@
 package kg.bakirov.alpha.controller;
 
 import kg.bakirov.alpha.exception.NotFoundException;
+import kg.bakirov.alpha.model.purchases.ResponseModel;
+import kg.bakirov.alpha.model.purchases.ResponseTotal;
 import kg.bakirov.alpha.service.PurchaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@CrossOrigin
 @RequestMapping("/purchases")
 public class PurchaseController {
 
@@ -22,9 +22,9 @@ public class PurchaseController {
     }
 
     @PostMapping
-    public ResponseEntity<?> purchases(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> purchases(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(purchaseService.getPurchases(firmNo, periodNo));
+            return ResponseEntity.ok(purchaseService.getPurchases(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -33,9 +33,9 @@ public class PurchaseController {
     }
 
     @PostMapping("/total")
-    public ResponseEntity<?> purchasesTotal(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> purchasesTotal(@RequestBody ResponseTotal response) {
         try {
-            return ResponseEntity.ok(purchaseService.getPurchasesTotal(firmNo, periodNo));
+            return ResponseEntity.ok(purchaseService.getPurchasesTotal(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -44,9 +44,9 @@ public class PurchaseController {
     }
 
     @PostMapping("/month")
-    public ResponseEntity<?> purchasesMonth(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> purchasesMonth(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(purchaseService.getPurchasesMonth(firmNo, periodNo));
+            return ResponseEntity.ok(purchaseService.getPurchasesMonth(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -55,9 +55,9 @@ public class PurchaseController {
     }
 
     @PostMapping("/client")
-    public ResponseEntity<?> purchasesClient(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> purchasesClient(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(purchaseService.getPurchasesClient(firmNo, periodNo));
+            return ResponseEntity.ok(purchaseService.getPurchasesClient(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

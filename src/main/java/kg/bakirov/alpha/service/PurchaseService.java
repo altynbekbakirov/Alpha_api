@@ -21,26 +21,26 @@ public class PurchaseService {
         this.purchaseRepository = purchaseRepository;
     }
 
-    public List<PurchaseFiche> getPurchases(int firmNo, int periodNo) throws NotFoundException {
-        List<PurchaseFiche> purchases = purchaseRepository.getPurchases(firmNo, periodNo);
+    public List<PurchaseFiche> getPurchases(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
+        List<PurchaseFiche> purchases = purchaseRepository.getPurchases(firmNo, periodNo, begDate, endDate, sourceindex);
         if (purchases.size() == 0) throw new NotFoundException("No records");
         return purchases;
     }
 
-    public List<PurchaseTotal> getPurchasesTotal(int firmNo, int periodNo) throws NotFoundException {
-        List<PurchaseTotal> totals = purchaseRepository.getPurchasesTotal(firmNo, periodNo);
+    public List<PurchaseTotal> getPurchasesTotal(int firmNo, int periodNo, String begDate, String endDate) throws NotFoundException {
+        List<PurchaseTotal> totals = purchaseRepository.getPurchasesTotal(firmNo, periodNo, begDate, endDate);
         if (totals.size() == 0) throw new NotFoundException("No records");
         return totals;
     }
 
-    public List<PurchaseMonth> getPurchasesMonth(int firmNo, int periodNo) throws NotFoundException {
-        List<PurchaseMonth> months = purchaseRepository.getPurchasesMonth(firmNo, periodNo);
+    public List<PurchaseMonth> getPurchasesMonth(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
+        List<PurchaseMonth> months = purchaseRepository.getPurchasesMonth(firmNo, periodNo, begDate, endDate, sourceindex);
         if (months.size() == 0) throw new NotFoundException("No records");
         return months;
     }
 
-    public List<PurchaseClient> getPurchasesClient(int firmNo, int periodNo) throws NotFoundException {
-        List<PurchaseClient> clients = purchaseRepository.getPurchasesClient(firmNo, periodNo);
+    public List<PurchaseClient> getPurchasesClient(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
+        List<PurchaseClient> clients = purchaseRepository.getPurchasesClient(firmNo, periodNo, begDate, endDate, sourceindex);
         if (clients.size() == 0) throw new NotFoundException("No records");
         return clients;
     }

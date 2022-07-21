@@ -30,14 +30,14 @@ public class PurchaseRepository {
 
     /* ------------------------------------------ Список документов ---------------------------------------------------- */
 
-    public List<PurchaseFiche> getPurchases(int firmno, int periodno) {
+    public List<PurchaseFiche> getPurchases(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
         List<PurchaseFiche> purchasesFicheList = null;
 
         try (Connection connection = mainRepository.getConnection()) {
 
-            String sqlQuery = "SELECT STFIC.TRCODE trcode, " +
+            String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE trcode, " +
                     "STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 105) AS date, " +
                     "ISNULL(CLNTC.CODE, 0) as clientcode, ISNULL(CLNTC.DEFINITION_, 0) as clientname, " +
                     "ROUND(CASE STFIC.TRCODE WHEN 6 THEN -STFIC.GROSSTOTAL ELSE STFIC.GROSSTOTAL END, 2) AS gross, " +
@@ -54,7 +54,8 @@ public class PurchaseRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (1, 6))  " +
+                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (1, 6)) AND (STFIC.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STFIC.DATE_>=" + "'" + begdate + "') AND (STFIC.DATE_<=" + "'" + enddate + "')) " +
                     "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 
             Statement statement = connection.createStatement();
@@ -66,8 +67,8 @@ public class PurchaseRepository {
 
                 purchasesFicheList.add(
                         new PurchaseFiche(
-                                resultSet.getString("trcode"),
-                                resultSet.getLong("ficheno"),
+                                resultSet.getInt("trcode"),
+                                resultSet.getString("ficheno"),
                                 resultSet.getString("date"),
                                 resultSet.getString("clientcode"),
                                 resultSet.getString("clientname"),
@@ -89,14 +90,14 @@ public class PurchaseRepository {
 
     /* ------------------------------------------ Итоговые цифры закупок ---------------------------------------------------- */
 
-    public List<PurchaseTotal> getPurchasesTotal(int firmno, int periodno) {
+    public List<PurchaseTotal> getPurchasesTotal(int firmno, int periodno, String begdate, String enddate) {
 
         utility.CheckCompany(firmno, periodno);
         List<PurchaseTotal> purchaseTotals = null;
 
         try (Connection connection = mainRepository.getConnection()) {
 
-            String sqlQuery = "SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
+            String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
                     "SUM(STITOTS.PURAMNT) AS purchase_count, ROUND(SUM(STITOTS.PURCASH), 2) AS purchase_total, " +
                     "ROUND(SUM(STITOTS.PURCURR), 2) AS purchase_total_usd, SUM(STITOTS.SALAMNT) AS sale_count, " +
                     "ROUND(SUM(STITOTS.SALCASH), 2) AS sale_total, ROUND(SUM(STITOTS.SALCURR), 2) AS sale_total_usd " +
@@ -104,6 +105,7 @@ public class PurchaseRepository {
                     "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVTOT_I2) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS ON STITOTS.STOCKREF = ITEMS.LOGICALREF " +
                     "WHERE (STITOTS.INVENNO = -1) AND (STITOTS.PURAMNT <> 0) " +
+                    "AND (STITOTS.DATE_ >= '" + begdate + "' AND STITOTS.DATE_ <=  '" + enddate + "') " +
                     "GROUP BY ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE ORDER BY ITEMS.CODE ";
 
             Statement statement = connection.createStatement();
@@ -137,46 +139,51 @@ public class PurchaseRepository {
 
     /* ------------------------------------------ Распределение закупок по месяцам ---------------------------------------------------- */
 
-    public List<PurchaseMonth> getPurchasesMonth(int firmno, int periodno) {
+    public List<PurchaseMonth> getPurchasesMonth(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
         List<PurchaseMonth> purchaseMonths = null;
 
         try (Connection connection = mainRepository.getConnection()) {
 
-            String sqlQuery = "SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+            String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 1))), 0) AS JAN_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 2) )), 0) AS FEB_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 3) )), 0) AS MAR_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 4) )), 0) AS APR_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 5) )), 0) AS MAY_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 6) )), 0) AS JUN_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 7) )), 0) AS JUL_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 8) )), 0) AS AUG_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 9) )), 0) AS SEP_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 10) )), 0) AS OCT_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 11) )), 0) AS NOV_COUNT, " +
-                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 12) )), 0) AS DEC_COUNT, " +
-                    "ISNULL((SELECT SUM(ITMSM.PURCHASES_AMOUNT) FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ISNULL((SELECT SUM(ITMSM.PURCHASES_AMOUNT) FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ BETWEEN 1 AND 12))), 0) AS TOTAL_COUNT, " +
-                    "ROUND(ISNULL((SELECT SUM(ITMSM.PURCHASES_CASHAMNT) FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ROUND(ISNULL((SELECT SUM(ITMSM.PURCHASES_CASHAMNT) FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ BETWEEN 1 AND 12))), 0), 2) AS TOTAL_SUM, " +
-                    "ROUND(ISNULL((SELECT SUM(ITMSM.PURCHASES_CURRAMNT) FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS_I2) " +
+                    "ROUND(ISNULL((SELECT SUM(ITMSM.PURCHASES_CURRAMNT) FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ BETWEEN 1 AND 12))), 0), 2) AS TOTAL_USD " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS " +
-                    "WHERE (ITEMS.CARDTYPE) <> 22 AND (ITEMS.ACTIVE = 0) ";
+                    "WHERE  (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
+                    "AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
+                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0)<>0) " +
+                    "Order BY code";
 
                         Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -218,14 +225,14 @@ public class PurchaseRepository {
 
     /* ------------------------------------------ Распределение закупок по контрагентам ---------------------------------------------------- */
 
-    public List<PurchaseClient> getPurchasesClient(int firmno, int periodno) {
+    public List<PurchaseClient> getPurchasesClient(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
         List<PurchaseClient> purchasesClientList = null;
 
         try (Connection connection = mainRepository.getConnection()) {
 
-            String sqlQuery = "SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
+            String sqlQuery = "Set DateFormat DMY SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
                     "ITMSC.CODE AS item_code, ITMSC.NAME AS item_name, ITMSC.STGRPCODE AS item_group, " +
                     "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
                     "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
@@ -239,6 +246,7 @@ public class PurchaseRepository {
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (1,5,6,10,26,30,31,32,33,34) ) AND (STFIC.CANCELLED = 0) " +
+                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND  (STRNS.SOURCEINDEX = " + sourceindex + ") " +
                     "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, ITMSC.CODE, ITMSC.NAME, ITMSC.STGRPCODE, STRNS.TRCODE " +
                     "ORDER BY CLNTC.CODE, ITMSC.CODE ";
 
