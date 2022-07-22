@@ -30,41 +30,47 @@ public class AccountRepository {
 
     /* ------------------------------------------ Акт сверки взаиморасчетов ---------------------------------------------------- */
 
-    public List<Account> getAccounts(int firmno, int periodno) {
+    public List<Account> getAccounts(int firmno, int periodno, String begdate, String enddate) {
 
         utility.CheckCompany(firmno, periodno);
         List<Account> accountList = null;
 
         try (Connection connection = mainRepository.getConnection()) {
 
-            String sqlQuery = "SELECT CLCARD.CODE AS kod, CLCARD.DEFINITION_ AS aciklama, CLCARD.ADDR1 AS adres, CLCARD.TELNRS1 AS telno, " +
+            String sqlQuery = "SET DATEFORMAT DMY " +
+                    "SELECT CLCARD.CODE AS kod, CLCARD.DEFINITION_ AS aciklama, CLCARD.ADDR1 AS adres, CLCARD.TELNRS1 AS telno, " +
+
                     "ROUND(ISNULL((SELECT SUM((1-CTRNS.SIGN)*CTRNS.REPORTNET) " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
-                    "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
+                    "FROM LG_001_03_CLFLINE CTRNS, LG_001_CLCARD CLNTC " +
+                    "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
+                    "AND (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '01.01.2022' AND CTRNS.DATE_ <= '31.12.2022') " +
+                    "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.CANCELLED = 0) AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0)+ " +
                     "ISNULL((SELECT SUM(((1-CTRNS.SIGN)+(CTRNS.SIGN*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, " +
-                    "LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC " +
+                    "FROM LG_001_03_CLFLINE CTRNS, " +
+                    "LG_001_CLCARD CLNTC, LG_001_03_INVOICE INVFC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) " +
+                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '01.01.2022' AND CTRNS.DATE_ <= '31.12.2022') " +
+                    "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) " +
                     "AND (INVFC.CANCELLED = 0) AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) borc, " +
+
                     "ROUND(ISNULL((SELECT SUM(CTRNS.SIGN*CTRNS.REPORTNET) " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
+                    "FROM LG_001_03_CLFLINE CTRNS, LG_001_CLCARD CLNTC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.CANCELLED = 0) " +
+                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '01.01.2022' AND CTRNS.DATE_ <= '31.12.2022') " +
+                    "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.CANCELLED = 0) " +
                     "AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0) + " +
                     "ISNULL((SELECT SUM((CTRNS.SIGN+((1-CTRNS.SIGN)*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, " +
-                    "LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC " +
+                    "FROM LG_001_03_CLFLINE CTRNS, " +
+                    "LG_001_CLCARD CLNTC, LG_001_03_INVOICE INVFC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
+                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '01.01.2022' AND CTRNS.DATE_ <= '31.12.2022') " +
+                    "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) AND (INVFC.CANCELLED = 0) " +
-                    "AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) as alacak " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD As CLCARD " +
-                    "WHERE (CLCARD.CARDTYPE <> 22 AND CLCARD.CARDTYPE <> 4) ORDER BY CODE ";
+                    "AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) as alacak  " +
 
-            System.out.println(GLOBAL_FIRM_NO);
-            System.out.println(GLOBAL_PERIOD);
+                    "FROM LG_001_CLCARD As CLCARD " +
+                    "WHERE (CLCARD.CARDTYPE <> 22 AND CLCARD.CARDTYPE <> 4) ORDER BY CODE ";
 
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(sqlQuery);

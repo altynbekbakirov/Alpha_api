@@ -58,7 +58,7 @@ public class ProductRepository {
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) " +
                     "AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) " +
                     "AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) AS salamount," +
-                    "(ISNULL ((Select SUM(LINENET) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (7,8))) AND (STOCKREF=Items.LOGICALREF) " +
+                    "(ISNULL ((Select SUM(LINENET  / NULLIF(REPORTRATE, 0) ) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (7,8))) AND (STOCKREF=Items.LOGICALREF) " +
                     "AND (CANCELLED=0) " +"AND ((DATE_>='" + begdate + "') " +
                     "AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (3))) AND (STOCKREF=Items.LOGICALREF) " +

@@ -1,16 +1,15 @@
 package kg.bakirov.alpha.controller;
 
 import kg.bakirov.alpha.exception.NotFoundException;
+import kg.bakirov.alpha.model.accounts.ResponseAccount;
 import kg.bakirov.alpha.service.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@CrossOrigin
 @RequestMapping("/accounts")
 public class AccountController {
 
@@ -22,9 +21,9 @@ public class AccountController {
     }
 
     @PostMapping
-    public ResponseEntity<?> accounts(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> accounts(@RequestBody ResponseAccount response) {
         try {
-            return ResponseEntity.ok(accountService.getAccounts(firmNo, periodNo));
+            return ResponseEntity.ok(accountService.getAccounts(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

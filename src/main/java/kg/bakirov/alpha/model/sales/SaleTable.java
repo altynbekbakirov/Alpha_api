@@ -8,9 +8,26 @@ public class SaleTable {
     private Double discounts;
     private Double net;
     private Double net_usd;
-    private Double returnAmount;
+    private Double ret_total;
+    private Double ret_total_usd;
 
     public SaleTable() {
+    }
+
+    public Double getRet_total() {
+        return ret_total;
+    }
+
+    public void setRet_total(Double ret_total) {
+        this.ret_total = ret_total;
+    }
+
+    public Double getRet_total_usd() {
+        return ret_total_usd;
+    }
+
+    public void setRet_total_usd(Double ret_total_usd) {
+        this.ret_total_usd = ret_total_usd;
     }
 
     public int getDate() {
@@ -51,14 +68,6 @@ public class SaleTable {
 
     public void setNet(Double net) {
         this.net = net;
-    }
-
-    public Double getReturnAmount() {
-        return returnAmount;
-    }
-
-    public void setReturnAmount(Double returnAmount) {
-        this.returnAmount = returnAmount;
     }
 
     public Double getNet_usd() {

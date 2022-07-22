@@ -26,8 +26,8 @@ public class AccountService {
         return productList;
     }
 
-    public List<Account> getAccounts(int firmNo, int periodNo) throws NotFoundException {
-        List<Account> accountList = accountRepository.getAccounts(firmNo, periodNo);
+    public List<Account> getAccounts(int firmNo, int periodNo, String begdate, String enddate) throws NotFoundException {
+        List<Account> accountList = accountRepository.getAccounts(firmNo, periodNo, begdate, enddate);
         if (accountList.size() == 0) throw new NotFoundException("No records");
         return accountList;
     }

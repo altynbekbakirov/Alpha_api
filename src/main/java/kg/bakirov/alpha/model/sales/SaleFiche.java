@@ -2,8 +2,8 @@ package kg.bakirov.alpha.model.sales;
 
 public class SaleFiche {
 
-    private String trCode;
-    private Long ficheNo;
+    private int trCode;
+    private String ficheNo;
     private String date;
     private String clientCode;
     private String clientName;
@@ -13,7 +13,7 @@ public class SaleFiche {
     private Double net;
     private Double netUsd;
 
-    public SaleFiche(String trCode, Long ficheNo, String date, String clientCode, String clientName, Double gross, Double discounts, Double expenses, Double net, Double netUsd) {
+    public SaleFiche(int trCode, String ficheNo, String date, String clientCode, String clientName, Double gross, Double discounts, Double expenses, Double net, Double netUsd) {
         this.trCode = trCode;
         this.ficheNo = ficheNo;
         this.date = date;
@@ -26,19 +26,19 @@ public class SaleFiche {
         this.netUsd = netUsd;
     }
 
-    public String getTrCode() {
+    public int getTrCode() {
         return trCode;
     }
 
-    public void setTrCode(String trCode) {
+    public void setTrCode(int trCode) {
         this.trCode = trCode;
     }
 
-    public Long getFicheNo() {
+    public String getFicheNo() {
         return ficheNo;
     }
 
-    public void setFicheNo(Long ficheNo) {
+    public void setFicheNo(String ficheNo) {
         this.ficheNo = ficheNo;
     }
 
