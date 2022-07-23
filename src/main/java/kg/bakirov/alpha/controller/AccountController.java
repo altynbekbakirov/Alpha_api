@@ -32,9 +32,9 @@ public class AccountController {
     }
 
     @PostMapping("/debit")
-    public ResponseEntity<?> accountDebit(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> accountDebit(@RequestBody ResponseAccount response) {
         try {
-            return ResponseEntity.ok(accountService.getAccountDebit(firmNo, periodNo));
+            return ResponseEntity.ok(accountService.getAccountDebit(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -43,9 +43,20 @@ public class AccountController {
     }
 
     @PostMapping("/extract")
-    public ResponseEntity<?> accountExtract(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> accountExtract(@RequestBody ResponseAccount response) {
         try {
-            return ResponseEntity.ok(accountService.getAccountExtract(firmNo, periodNo));
+            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/extract/{id}")
+    public ResponseEntity<?> accountExtractOne(@RequestBody ResponseAccount response, @PathVariable int id) {
+        try {
+            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), id));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

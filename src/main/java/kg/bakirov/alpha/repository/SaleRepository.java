@@ -4,6 +4,7 @@ import kg.bakirov.alpha.helper.Utility;
 import kg.bakirov.alpha.model.sales.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,6 +12,7 @@ import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -132,7 +134,7 @@ public class SaleRepository {
 
 
 
-    /* ------------------------------------------ Распределение закупок по месяцам ---------------------------------------------------- */
+    /* ------------------------------------------ Распределение продаж по месяцам ---------------------------------------------------- */
 
     public List<SaleMonth> getSalesMonth(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
@@ -218,7 +220,7 @@ public class SaleRepository {
 
 
 
-    /* ------------------------------------------ Распределение закупок по менеджерам ---------------------------------------------------- */
+    /* ------------------------------------------ Распределение продаж по менеджерам ---------------------------------------------------- */
 
     public List<SaleClientManager> getSalesManager(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
@@ -326,7 +328,7 @@ public class SaleRepository {
 
 
 
-    /* ------------------------------------------ Распределение закупок по контрагентам ---------------------------------------------------- */
+    /* ------------------------------------------ Распределение продаж по контрагентам ---------------------------------------------------- */
 
     public List<SaleClient> getSalesClient(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
@@ -474,7 +476,6 @@ public class SaleRepository {
                 }
 
                 saleTable.setDate(month);
-
                 saleTable.setTotal(total - ret);
                 saleTable.setDiscounts(discounts);
                 saleTable.setExpenses(expenses);
@@ -522,7 +523,7 @@ public class SaleRepository {
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) " +
                     "* (STRNS.TOTAL+STRNS.DISTEXP-STRNS.DISTDISC+STRNS.DIFFPRICE-STRNS.VATINC*STRNS.VATAMNT)/STRNS.REPORTRATE) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
-                    "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.REPORTRATE > 0.0001) " +
+                    "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.REPORTRATE > 0.0" + GLOBAL_FIRM_NO + ") " +
                     "AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) " +
                     "AND ((STRNS.TRCODE IN (2,3)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 2)) AND STRNS.TRCODE IN (2,3))) " +
@@ -548,7 +549,7 @@ public class SaleRepository {
                     "* (STRNS.TOTAL+STRNS.DISTEXP-STRNS.DISTDISC+STRNS.DIFFPRICE-STRNS.VATINC*STRNS.VATAMNT)/STRNS.REPORTRATE) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) " +
-                    "AND (STRNS.REPORTRATE > 0.0001) AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
+                    "AND (STRNS.REPORTRATE > 0.0" + GLOBAL_FIRM_NO + ") AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND ((STRNS.IOCODE IN (3,4))) " +
                     "AND ((STRNS.TRCODE IN (7,8)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 3)) AND STRNS.TRCODE IN (7,8)  )) " +
                     "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ") " +
@@ -595,5 +596,49 @@ public class SaleRepository {
             throwables.printStackTrace();
         }
         return saleDetails;
+    }
+
+    /* ------------------------------------------ Ежедневные продажи ---------------------------------------------------- */
+
+    public List<SaleDaily> getSalesDaily(int firmno, int periodno, String begDate, String endDate, int sourceIndex) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<SaleDaily> saleClients = new ArrayList<>();
+
+        try (Connection connection = mainRepository.getConnection()) {
+
+            String sqlQuery = "Set DateFormat DMY " +
+                    "SELECT  CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.TRCODE AS trcode, " +
+                    "SUM(LGMAIN.NETTOTAL) AS net_total, " +
+                    "SUM(LGMAIN.REPORTNET) AS report_net " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE LGMAIN  " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (LGMAIN.CLIENTREF  =  CLNTC.LOGICALREF) " +
+                    "WHERE (LGMAIN.GRPCODE = 2) " +
+                    "AND ((LGMAIN.DATE_>='" + begDate + "') AND (LGMAIN.DATE_<='" + endDate + "')) " +
+                    "AND (LGMAIN.SOURCEINDEX=" + sourceIndex + ") " +
+                    "GROUP BY LGMAIN.DATE_, LGMAIN.TRCODE " +
+                    "ORDER BY LGMAIN.DATE_ DESC";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            while (resultSet.next()) {
+                SaleDaily client = new SaleDaily();
+                client.setDate(resultSet.getString("date"));
+
+                if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                    client.setNetTotal(resultSet.getDouble("net_total"));
+                    client.setReportNet(resultSet.getDouble("report_net"));
+                } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                    client.setNetReturn(resultSet.getDouble("net_total"));
+                    client.setReportReturn(resultSet.getDouble("report_net"));
+                }
+                saleClients.add(client);
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return saleClients;
     }
 }

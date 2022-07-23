@@ -36,6 +36,12 @@ public class SaleService {
         return sales;
     }
 
+    public List<SaleDaily> getSalesDaily(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
+        List<SaleDaily> sales = saleRepository.getSalesDaily(firmNo, periodNo, begDate, endDate, sourceIndex);
+        if (sales.size() == 0) throw new NotFoundException("No records");
+        return sales;
+    }
+
     public List<SaleClientManager> getSalesManager(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
         List<SaleClientManager> sales = saleRepository.getSalesManager(firmNo, periodNo, begDate, endDate, sourceIndex);
         if (sales.size() == 0) throw new NotFoundException("No records");

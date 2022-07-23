@@ -5,7 +5,7 @@ public class AccountExtract {
     private String code;
     private String name;
     private String date;
-    private String trcode;
+    private int trcode;
     private String ficheno;
     private String description;
     private Double debit;
@@ -32,11 +32,11 @@ public class AccountExtract {
         this.name = name;
     }
 
-    public String getTrcode() {
+    public int getTrcode() {
         return trcode;
     }
 
-    public void setTrcode(String trcode) {
+    public void setTrcode(int trcode) {
         this.trcode = trcode;
     }
 

@@ -54,6 +54,17 @@ public class SaleController {
         }
     }
 
+    @PostMapping("/daily")
+    public ResponseEntity<?> salesDaily(@RequestBody ResponseSale response) {
+        try {
+            return ResponseEntity.ok(saleService.getSalesDaily(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/manager")
     public ResponseEntity<?> salesManager(@RequestBody ResponseSale response) {
         try {

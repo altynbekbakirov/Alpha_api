@@ -1,6 +1,7 @@
 package kg.bakirov.alpha.model.accounts;
 
 public class Account {
+    private Long id;
     private String code;
     private String name;
     private String address;
@@ -9,12 +10,8 @@ public class Account {
     private double credit;
     private double balance;
 
-    public Account(String code, String name) {
-        this.code = code;
-        this.name = name;
-    }
-
-    public Account(String code, String name, String address, String phone, double debit, double credit, double balance) {
+    public Account(Long id, String code, String name, String address, String phone, double debit, double credit, double balance) {
+        this.id = id;
         this.code = code;
         this.name = name;
         this.address = address;
@@ -22,6 +19,14 @@ public class Account {
         this.debit = debit;
         this.credit = credit;
         this.balance = balance;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getCode() {

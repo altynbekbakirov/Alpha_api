@@ -20,8 +20,8 @@ public class AccountService {
         this.accountRepository = accountRepository;
     }
 
-    public List<AccountDebit> getAccountDebit(int firmNo, int periodNo) throws NotFoundException {
-        List<AccountDebit> productList = accountRepository.getAccountDebit(firmNo, periodNo);
+    public List<AccountDebit> getAccountDebit(int firmNo, int periodNo, String begdate, String enddate) throws NotFoundException {
+        List<AccountDebit> productList = accountRepository.getAccountDebit(firmNo, periodNo, begdate, enddate);
         if (productList.size() == 0) throw new NotFoundException("No records");
         return productList;
     }
@@ -32,8 +32,14 @@ public class AccountService {
         return accountList;
     }
 
-    public List<AccountExtract> getAccountExtract(int firmNo, int periodNo) throws NotFoundException {
-        List<AccountExtract> productList = accountRepository.getAccountExtract(firmNo, periodNo);
+    public List<AccountExtract> getAccountExtract(int firmNo, int periodNo, String begdate, String enddate) throws NotFoundException {
+        List<AccountExtract> productList = accountRepository.getAccountExtract(firmNo, periodNo, begdate, enddate);
+        if (productList.size() == 0) throw new NotFoundException("No records");
+        return productList;
+    }
+
+    public List<AccountExtract> getAccountExtract(int firmNo, int periodNo, String begdate, String enddate, int account) throws NotFoundException {
+        List<AccountExtract> productList = accountRepository.getAccountExtract(firmNo, periodNo, begdate, enddate, account);
         if (productList.size() == 0) throw new NotFoundException("No records");
         return productList;
     }
