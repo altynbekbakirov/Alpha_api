@@ -41,35 +41,35 @@ public class AccountRepository {
                     "SELECT CLCARD.LOGICALREF AS id, CLCARD.CODE AS kod, CLCARD.DEFINITION_ AS aciklama, CLCARD.ADDR1 AS adres, CLCARD.TELNRS1 AS telno, " +
 
                     "ROUND(ISNULL((SELECT SUM((1-CTRNS.SIGN)*CTRNS.REPORTNET) " +
-                    "FROM LG_001_03_CLFLINE CTRNS, LG_001_CLCARD CLNTC " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
                     "AND (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '" + begdate + "' AND CTRNS.DATE_ <= '" + enddate + "') " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.CANCELLED = 0) AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0)+ " +
                     "ISNULL((SELECT SUM(((1-CTRNS.SIGN)+(CTRNS.SIGN*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
-                    "FROM LG_001_03_CLFLINE CTRNS, " +
-                    "LG_001_CLCARD CLNTC, LG_001_03_INVOICE INVFC " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, " +
+                    "LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
                     "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '" + begdate + "' AND CTRNS.DATE_ <= '" + enddate + "') " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) " +
                     "AND (INVFC.CANCELLED = 0) AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) borc, " +
 
                     "ROUND(ISNULL((SELECT SUM(CTRNS.SIGN*CTRNS.REPORTNET) " +
-                    "FROM LG_001_03_CLFLINE CTRNS, LG_001_CLCARD CLNTC " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
                     "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '" + begdate + "' AND CTRNS.DATE_ <= '" + enddate + "') " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.CANCELLED = 0) " +
                     "AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0) + " +
                     "ISNULL((SELECT SUM((CTRNS.SIGN+((1-CTRNS.SIGN)*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
-                    "FROM LG_001_03_CLFLINE CTRNS, " +
-                    "LG_001_CLCARD CLNTC, LG_001_03_INVOICE INVFC " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, " +
+                    "LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
                     "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= '" + begdate + "' AND CTRNS.DATE_ <= '" + enddate + "') " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) AND (INVFC.CANCELLED = 0) " +
                     "AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) as alacak  " +
 
-                    "FROM LG_001_CLCARD As CLCARD " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD As CLCARD " +
                     "WHERE (CLCARD.CARDTYPE <> 22 AND CLCARD.CARDTYPE <> 4) ORDER BY CODE ";
 
             Statement statement = connection.createStatement();
@@ -112,7 +112,7 @@ public class AccountRepository {
 
         try (Connection connection = mainRepository.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY SELECT CTRNS.SIGN, CTRNS.REPORTNET, CTRNS.AMOUNT, " +
+            String sqlQuery = "SET DATEFORMAT DMY SELECT CLNTC.LOGICALREF AS id,  CTRNS.SIGN, CTRNS.REPORTNET, CTRNS.AMOUNT, " +
                     "CLNTC.CODE, CLNTC.DEFINITION_, CLNTC.TELNRS1, CLNTC.ADDR1, CLNUM.RISKTOTAL, CLNUM.REPRISKTOTAL " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS WITH(NOLOCK) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (CTRNS.CLIENTREF  =  CLNTC.LOGICALREF) " +
@@ -137,6 +137,7 @@ public class AccountRepository {
                 int sign = resultSet.getInt("sign");
                 AccountDebit accountDebit = new AccountDebit();
 
+                accountDebit.setId(resultSet.getLong("id"));
                 accountDebit.setCode(resultSet.getString("code"));
                 accountDebit.setName(resultSet.getString("DEFINITION_"));
                 accountDebit.setAddress(resultSet.getString("ADDR1"));

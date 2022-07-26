@@ -4,6 +4,7 @@ import kg.bakirov.alpha.helper.Utility;
 import kg.bakirov.alpha.model.sales.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -625,7 +626,7 @@ public class SaleRepository {
             while (resultSet.next()) {
                 SaleDaily client = new SaleDaily();
                 client.setDate(resultSet.getString("date"));
-
+                client.setTrCode(resultSet.getInt("trcode"));
                 if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
                     client.setNetTotal(resultSet.getDouble("net_total"));
                     client.setReportNet(resultSet.getDouble("report_net"));
@@ -635,6 +636,28 @@ public class SaleRepository {
                 }
                 saleClients.add(client);
             }
+
+            Map<String, SaleDaily> map = new TreeMap<>(Collections.reverseOrder());
+
+            for (SaleDaily saleDaily: saleClients) {
+                if (map.containsKey(saleDaily.getDate())) {
+                    SaleDaily daily = map.get(saleDaily.getDate());
+                    double netTotal = (daily.getNetTotal() == null ? 0.0 : daily.getNetTotal()) + (saleDaily.getNetTotal() == null ? 0.0 : saleDaily.getNetTotal());
+                    double reportNet = (daily.getReportNet() == null ? 0.0 : daily.getReportNet()) + (saleDaily.getReportNet() == null ? 0.0 : saleDaily.getReportNet());
+                    double netReturn = (daily.getNetReturn() == null ? 0.0 : daily.getNetReturn()) + (saleDaily.getNetReturn() == null ? 0.0 : saleDaily.getNetReturn());
+                    double reportReturn = (daily.getReportReturn() == null ? 0.0 : daily.getReportReturn()) + (saleDaily.getReportReturn() == null ? 0.0 : saleDaily.getReportReturn());
+                    daily.setNetTotal(netTotal);
+                    daily.setReportNet(reportNet);
+                    daily.setNetReturn(netReturn);
+                    daily.setReportReturn(reportReturn);
+                    map.put(saleDaily.getDate(), daily);
+                } else {
+                    map.put(saleDaily.getDate(), saleDaily);
+                }
+            }
+
+            saleClients.clear();
+            saleClients.addAll(map.values());
 
         } catch (SQLException throwables) {
             throwables.printStackTrace();
