@@ -4,7 +4,6 @@ import kg.bakirov.alpha.helper.Utility;
 import kg.bakirov.alpha.model.sales.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -304,8 +303,8 @@ public class SaleRepository {
                 }
 
                 SaleClientManager client = new SaleClientManager();
-                client.setClientCode(resultSet.getString("client_code"));
-                client.setClientName(resultSet.getString("client_name"));
+                client.setClientCode(resultSet.getString("client_code") == null ? "others" : resultSet.getString("client_code"));
+                client.setClientName(resultSet.getString("client_name") == null ? "others" : resultSet.getString("client_name"));
                 client.setItemAmount(itemAmount);
                 client.setItemTotal(itemTotal);
                 client.setItemTotalUsd(itemTotalUsd);
@@ -404,7 +403,7 @@ public class SaleRepository {
 
         utility.CheckCompany(firmno, periodno);
         List<SaleTable> saleTables = null;
-        Map<Integer, SaleTable> map_month = new HashMap<>();
+        Map<String, SaleTable> map_month = new HashMap<>();
 
         try (Connection connection = mainRepository.getConnection()) {
 
@@ -476,7 +475,7 @@ public class SaleRepository {
                     discounts = discounts + resultSet.getDouble("total");
                 }
 
-                saleTable.setDate(month);
+                saleTable.setDate(String.valueOf(month));
                 saleTable.setTotal(total - ret);
                 saleTable.setDiscounts(discounts);
                 saleTable.setExpenses(expenses);
@@ -485,12 +484,12 @@ public class SaleRepository {
                 saleTable.setRet_total(ret);
                 saleTable.setRet_total_usd(ret_usd);
                 currentMonth = month;
-                map_month.put(saleTable.getDate(), saleTable);
+                map_month.put(String.valueOf(saleTable.getDate()), saleTable);
             }
 
-            Map<Integer, SaleTable> sortTable = new TreeMap<>(map_month);
+            Map<String, SaleTable> sortTable = new TreeMap<>(map_month);
 
-            for (Map.Entry<Integer, SaleTable> entry : sortTable.entrySet()) {
+            for (Map.Entry<String, SaleTable> entry : sortTable.entrySet()) {
                 saleTables.add(entry.getValue());
             }
 
@@ -628,11 +627,11 @@ public class SaleRepository {
                 client.setDate(resultSet.getString("date"));
                 client.setTrCode(resultSet.getInt("trcode"));
                 if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
-                    client.setNetTotal(resultSet.getDouble("net_total"));
-                    client.setReportNet(resultSet.getDouble("report_net"));
+                    client.setNet(resultSet.getDouble("net_total"));
+                    client.setNet_usd(resultSet.getDouble("report_net"));
                 } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
-                    client.setNetReturn(resultSet.getDouble("net_total"));
-                    client.setReportReturn(resultSet.getDouble("report_net"));
+                    client.setRet_total(resultSet.getDouble("net_total"));
+                    client.setRet_total_usd(resultSet.getDouble("report_net"));
                 }
                 saleClients.add(client);
             }
@@ -642,14 +641,14 @@ public class SaleRepository {
             for (SaleDaily saleDaily: saleClients) {
                 if (map.containsKey(saleDaily.getDate())) {
                     SaleDaily daily = map.get(saleDaily.getDate());
-                    double netTotal = (daily.getNetTotal() == null ? 0.0 : daily.getNetTotal()) + (saleDaily.getNetTotal() == null ? 0.0 : saleDaily.getNetTotal());
-                    double reportNet = (daily.getReportNet() == null ? 0.0 : daily.getReportNet()) + (saleDaily.getReportNet() == null ? 0.0 : saleDaily.getReportNet());
-                    double netReturn = (daily.getNetReturn() == null ? 0.0 : daily.getNetReturn()) + (saleDaily.getNetReturn() == null ? 0.0 : saleDaily.getNetReturn());
-                    double reportReturn = (daily.getReportReturn() == null ? 0.0 : daily.getReportReturn()) + (saleDaily.getReportReturn() == null ? 0.0 : saleDaily.getReportReturn());
-                    daily.setNetTotal(netTotal);
-                    daily.setReportNet(reportNet);
-                    daily.setNetReturn(netReturn);
-                    daily.setReportReturn(reportReturn);
+                    double netTotal = (daily.getNet() == null ? 0.0 : daily.getNet()) + (saleDaily.getNet() == null ? 0.0 : saleDaily.getNet());
+                    double reportNet = (daily.getNet_usd() == null ? 0.0 : daily.getNet_usd()) + (saleDaily.getNet_usd() == null ? 0.0 : saleDaily.getNet_usd());
+                    double netReturn = (daily.getRet_total() == null ? 0.0 : daily.getRet_total()) + (saleDaily.getRet_total() == null ? 0.0 : saleDaily.getRet_total());
+                    double reportReturn = (daily.getRet_total_usd() == null ? 0.0 : daily.getRet_total_usd()) + (saleDaily.getRet_total_usd() == null ? 0.0 : saleDaily.getRet_total_usd());
+                    daily.setNet(netTotal);
+                    daily.setNet_usd(reportNet);
+                    daily.setRet_total(netReturn);
+                    daily.setRet_total_usd(reportReturn);
                     map.put(saleDaily.getDate(), daily);
                 } else {
                     map.put(saleDaily.getDate(), saleDaily);

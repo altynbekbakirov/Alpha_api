@@ -2,7 +2,7 @@ package kg.bakirov.alpha.model.sales;
 
 public class SaleTable {
 
-    private int date;
+    private String date;
     private Double total;
     private Double expenses;
     private Double discounts;
@@ -30,11 +30,11 @@ public class SaleTable {
         this.ret_total_usd = ret_total_usd;
     }
 
-    public int getDate() {
+    public String getDate() {
         return date;
     }
 
-    public void setDate(int date) {
+    public void setDate(String date) {
         this.date = date;
     }
 
