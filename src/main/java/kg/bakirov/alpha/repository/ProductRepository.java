@@ -1,10 +1,7 @@
 package kg.bakirov.alpha.repository;
 
 import kg.bakirov.alpha.helper.Utility;
-import kg.bakirov.alpha.model.products.Product;
-import kg.bakirov.alpha.model.products.ProductFiche;
-import kg.bakirov.alpha.model.products.ProductInventory;
-import kg.bakirov.alpha.model.products.ProductPrice;
+import kg.bakirov.alpha.model.products.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -237,6 +234,42 @@ public class ProductRepository {
             throwables.printStackTrace();
         }
         return itemsFicheList;
+    }
+
+
+
+    /* ---------------------------------------- Достаточность товаров ------------------------------------------------ */
+
+    public List<ProductEnough> getProductEnough(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<ProductEnough> itemsPriceList = null;
+
+        try (Connection connection = mainRepository.getConnection()) {
+
+            String sqlQuery = "SELECT ROW_NUMBER() OVER(ORDER BY code ASC) AS row, ITEMS.CODE AS code, " +
+                    "ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupcode, GNSTITOT.ONHAND AS onhand, " +
+                    "ISNULL((SELECT USLINE.CODE FROM LG_" + GLOBAL_FIRM_NO + "_UNITSETL USLINE WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_UNITSETL_I4) " +
+                    "WHERE (USLINE.UNITSETREF = ITEMS.UNITSETREF) AND (USLINE.MAINUNIT = 1)), 0) AS unit, " +
+                    "ISNULL((SELECT TOP 1 PRICE FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST prclist WHERE ((ITEMS.LOGICALREF = prclist.CARDREF) " +
+                    "AND (PTYPE = 2) AND (BEGDATE <= GETDATE()) AND (ENDDATE >= GETDATE()))), 0) AS price " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS LEFT JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD +
+                    "_GNTOTST GNSTITOT WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST_I1) " +
+                    "ON (GNSTITOT.STOCKREF = ITEMS.LOGICALREF) WHERE ((GNSTITOT.INVENNO = -1) AND (GNSTITOT.ONHAND > 0)) ORDER BY ITEMS.CODE";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            itemsPriceList = new ArrayList<>();
+
+            while (resultSet.next()) {
+
+
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return itemsPriceList;
     }
 
 

@@ -12,11 +12,15 @@ public class SaleFiche {
     private Double expenses;
     private Double net;
     private Double netUsd;
+    private String managerCode;
+    private String managerName;
 
-    public SaleFiche(int trCode, String ficheNo, String date, String clientCode, String clientName, Double gross, Double discounts, Double expenses, Double net, Double netUsd) {
+    public SaleFiche(int trCode, String ficheNo, String date, String managerCode, String managerName, String clientCode, String clientName, Double gross, Double discounts, Double expenses, Double net, Double netUsd) {
         this.trCode = trCode;
         this.ficheNo = ficheNo;
         this.date = date;
+        this.managerCode = managerCode;
+        this.managerName = managerName;
         this.clientCode = clientCode;
         this.clientName = clientName;
         this.gross = gross;
@@ -24,6 +28,22 @@ public class SaleFiche {
         this.expenses = expenses;
         this.net = net;
         this.netUsd = netUsd;
+    }
+
+    public String getManagerCode() {
+        return managerCode;
+    }
+
+    public void setManagerCode(String managerCode) {
+        this.managerCode = managerCode;
+    }
+
+    public String getManagerName() {
+        return managerName;
+    }
+
+    public void setManagerName(String managerName) {
+        this.managerName = managerName;
     }
 
     public int getTrCode() {

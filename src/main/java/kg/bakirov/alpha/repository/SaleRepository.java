@@ -40,6 +40,8 @@ public class SaleRepository {
 
             String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE  trcode, " +
                     "STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
+                    "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS managercode, " +
+                    "(SELECT DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS managername, " +
                     "ISNULL(CLNTC.CODE, 0) as clientcode, ISNULL(CLNTC.DEFINITION_, 0) as clientname, " +
                     "ROUND(CASE STFIC.TRCODE WHEN 2 THEN -STFIC.GROSSTOTAL WHEN 3 THEN -STFIC.GROSSTOTAL WHEN 4 THEN -STFIC.GROSSTOTAL ELSE STFIC.GROSSTOTAL END, 2) AS gross, " +
                     "ROUND(STFIC.TOTALDISCOUNTS, 2) AS discounts, " +
@@ -69,6 +71,8 @@ public class SaleRepository {
                                 resultSet.getInt("trcode"),
                                 resultSet.getString("ficheno"),
                                 resultSet.getString("date"),
+                                resultSet.getString("managercode"),
+                                resultSet.getString("managername"),
                                 resultSet.getString("clientcode"),
                                 resultSet.getString("clientname"),
                                 resultSet.getDouble("gross"),
@@ -597,6 +601,7 @@ public class SaleRepository {
         }
         return saleDetails;
     }
+
 
     /* ------------------------------------------ Ежедневные продажи ---------------------------------------------------- */
 
