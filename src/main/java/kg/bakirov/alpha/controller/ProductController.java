@@ -1,6 +1,7 @@
 package kg.bakirov.alpha.controller;
 
 import kg.bakirov.alpha.exception.NotFoundException;
+import kg.bakirov.alpha.model.products.ResponseModel;
 import kg.bakirov.alpha.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,14 +21,9 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<?> products(@RequestParam("firmno") int firmNo,
-                                      @RequestParam("periodno") int periodNo,
-                                      @RequestParam("begdate") String begDate,
-                                      @RequestParam("enddate") String endDate,
-                                      @RequestParam("sourceindex") int sourceIndex
-                                      ) {
+    public ResponseEntity<?> products(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProducts(firmNo, periodNo, begDate, endDate, sourceIndex));
+            return ResponseEntity.ok(productService.getProducts(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -36,9 +32,9 @@ public class ProductController {
     }
 
     @PostMapping("/inventory")
-    public ResponseEntity<?> productsInventory(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> productsInventory(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductsInventory(firmNo, periodNo));
+            return ResponseEntity.ok(productService.getProductsInventory(response.getFirmno(), response.getPeriodno()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -47,13 +43,9 @@ public class ProductController {
     }
 
     @PostMapping("/fiche")
-    public ResponseEntity<?> productsFiche(@RequestParam("firmno") int firmNo,
-                                           @RequestParam("periodno") int periodNo,
-                                           @RequestParam("begdate") String begDate,
-                                           @RequestParam("enddate") String endDate,
-                                           @RequestParam("sourceindex") int sourceIndex) {
+    public ResponseEntity<?> productsFiche(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductsFiche(firmNo, periodNo, begDate, endDate, sourceIndex));
+            return ResponseEntity.ok(productService.getProductsFiche(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -62,9 +54,9 @@ public class ProductController {
     }
 
     @PostMapping("/price")
-    public ResponseEntity<?> productsPrice(@RequestParam("firmno") int firmNo, @RequestParam("periodno") int periodNo) {
+    public ResponseEntity<?> productsPrice(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductsPrice(firmNo, periodNo));
+            return ResponseEntity.ok(productService.getProductsPrice(response.getFirmno(), response.getPeriodno()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

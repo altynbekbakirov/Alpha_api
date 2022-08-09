@@ -7,6 +7,8 @@ import kg.bakirov.alpha.model.purchases.PurchaseMonth;
 import kg.bakirov.alpha.model.purchases.PurchaseTotal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,12 +22,12 @@ import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 public class PurchaseRepository {
 
     private final Utility utility;
-    private final MainRepository mainRepository;
+    private final DataSource dataSource;
 
     @Autowired
-    public PurchaseRepository(Utility utility, MainRepository mainRepository) {
+    public PurchaseRepository(Utility utility, DataSource dataSource) {
         this.utility = utility;
-        this.mainRepository = mainRepository;
+        this.dataSource = dataSource;
     }
 
     /* ------------------------------------------ Список документов ---------------------------------------------------- */
@@ -35,7 +37,7 @@ public class PurchaseRepository {
         utility.CheckCompany(firmno, periodno);
         List<PurchaseFiche> purchasesFicheList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE trcode, " +
                     "STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
@@ -95,7 +97,7 @@ public class PurchaseRepository {
         utility.CheckCompany(firmno, periodno);
         List<PurchaseTotal> purchaseTotals = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
                     "SUM(STITOTS.PURAMNT) AS purchase_count, ROUND(SUM(STITOTS.PURCASH), 2) AS purchase_total, " +
@@ -144,7 +146,7 @@ public class PurchaseRepository {
         utility.CheckCompany(firmno, periodno);
         List<PurchaseMonth> purchaseMonths = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
                     "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM " +
@@ -231,7 +233,7 @@ public class PurchaseRepository {
         utility.CheckCompany(firmno, periodno);
         List<PurchaseClient> purchasesClientList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
                     "ITMSC.CODE AS item_code, ITMSC.NAME AS item_name, ITMSC.STGRPCODE AS item_group, " +

@@ -6,6 +6,8 @@ import kg.bakirov.alpha.model.accounts.AccountDebit;
 import kg.bakirov.alpha.model.accounts.AccountExtract;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,12 +21,12 @@ import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 public class AccountRepository {
 
     private final Utility utility;
-    private final MainRepository mainRepository;
+    private final DataSource dataSource;
 
     @Autowired
-    public AccountRepository(Utility utility, MainRepository mainRepository) {
+    public AccountRepository(Utility utility, DataSource dataSource) {
         this.utility = utility;
-        this.mainRepository = mainRepository;
+        this.dataSource = dataSource;
     }
 
 
@@ -35,7 +37,7 @@ public class AccountRepository {
         utility.CheckCompany(firmno, periodno);
         List<Account> accountList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "SET DATEFORMAT DMY " +
                     "SELECT CLCARD.LOGICALREF AS id, CLCARD.CODE AS kod, CLCARD.DEFINITION_ AS aciklama, CLCARD.ADDR1 AS adres, CLCARD.TELNRS1 AS telno, " +
@@ -110,7 +112,7 @@ public class AccountRepository {
         List<AccountDebit> customerDebitList = new ArrayList<>();
         List<AccountDebit> accountDebitList = new ArrayList<>();
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "SET DATEFORMAT DMY SELECT CLNTC.LOGICALREF AS id,  CTRNS.SIGN, CTRNS.REPORTNET, CTRNS.AMOUNT, " +
                     "CLNTC.CODE, CLNTC.DEFINITION_, CLNTC.TELNRS1, CLNTC.ADDR1, CLNUM.RISKTOTAL, CLNUM.REPRISKTOTAL " +
@@ -198,7 +200,7 @@ public class AccountRepository {
         utility.CheckCompany(firmno, periodno);
         List<AccountExtract> accountExtractList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "SET DATEFORMAT DMY SELECT CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
                     "CONVERT(varchar, CTRNS.DATE_, 23) AS date, CTRNS.TRCODE, CTRNS.SIGN, " +
@@ -320,7 +322,7 @@ public class AccountRepository {
         utility.CheckCompany(firmno, periodno);
         List<AccountExtract> accountExtractList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "SET DATEFORMAT DMY SELECT CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
                     "CONVERT(varchar, CTRNS.DATE_, 23) AS date, CTRNS.TRCODE, CTRNS.SIGN, " +

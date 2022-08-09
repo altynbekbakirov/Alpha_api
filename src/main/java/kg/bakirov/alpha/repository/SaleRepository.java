@@ -5,6 +5,7 @@ import kg.bakirov.alpha.model.sales.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,7 +13,6 @@ import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -20,12 +20,12 @@ import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 public class SaleRepository {
 
     private final Utility utility;
-    private final MainRepository mainRepository;
+    private final DataSource dataSource;
 
     @Autowired
-    public SaleRepository(Utility utility, MainRepository mainRepository) {
+    public SaleRepository(Utility utility, DataSource dataSource) {
         this.utility = utility;
-        this.mainRepository = mainRepository;
+        this.dataSource = dataSource;
     }
 
 
@@ -36,7 +36,7 @@ public class SaleRepository {
         utility.CheckCompany(firmno, periodno);
         List<SaleFiche> saleFiches = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE  trcode, " +
                     "STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
@@ -98,7 +98,7 @@ public class SaleRepository {
         utility.CheckCompany(firmno, periodno);
         List<SaleTotal> saleTotals = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
                     "SUM(STITOTS.PURAMNT) AS purchase_count, ROUND(SUM(STITOTS.PURCASH), 2) AS purchase_total, " +
@@ -145,7 +145,7 @@ public class SaleRepository {
         utility.CheckCompany(firmno, periodno);
         List<SaleMonth> saleMonths = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
                     "ISNULL((SELECT ITMSM.SALES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
@@ -231,7 +231,7 @@ public class SaleRepository {
         utility.CheckCompany(firmno, periodno);
         List<SaleClientManager> saleClientManagers = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT (SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_code, " +
                     "(SELECT DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_name, " +
@@ -339,7 +339,7 @@ public class SaleRepository {
         utility.CheckCompany(firmno, periodno);
         List<SaleClient> saleClients = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
                     "ITMSC.CODE AS item_code, ITMSC.NAME AS item_name, ITMSC.STGRPCODE AS item_group, " +
@@ -409,7 +409,7 @@ public class SaleRepository {
         List<SaleTable> saleTables = null;
         Map<String, SaleTable> map_month = new HashMap<>();
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = " Set DateFormat DMY SELECT INVFC.DATE_ AS date, INVFC.TRCODE, STRNS.LINETYPE, " +
                     "SUM(ROUND(ISNULL(STRNS.TOTAL, 0) , 2)) AS total, " +
@@ -512,7 +512,7 @@ public class SaleRepository {
         utility.CheckCompany(firmno, periodno);
         List<SaleDetail> saleDetails = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY " +
                     "Select ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
@@ -610,7 +610,7 @@ public class SaleRepository {
         utility.CheckCompany(firmno, periodno);
         List<SaleDaily> saleClients = new ArrayList<>();
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY " +
                     "SELECT  CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.TRCODE AS trcode, " +

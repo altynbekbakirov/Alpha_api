@@ -5,13 +5,13 @@ import kg.bakirov.alpha.model.products.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -19,12 +19,12 @@ import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 public class ProductRepository {
 
     private final Utility utility;
-    private final MainRepository mainRepository;
+    private final DataSource dataSource;
 
     @Autowired
-    public ProductRepository(Utility utility, MainRepository mainRepository) {
+    public ProductRepository(Utility utility, DataSource dataSource) {
         this.utility = utility;
-        this.mainRepository = mainRepository;
+        this.dataSource = dataSource;
     }
 
     /* ------------------------------------------ Остаток товаров ---------------------------------------------------- */
@@ -34,7 +34,7 @@ public class ProductRepository {
         utility.CheckCompany(firmno, periodno);
         List<Product> itemsList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             /*String sqlQuery = "SELECT ITEMS.CODE as code, ITEMS.NAME as name, ITEMS.STGRPCODE AS groupcode, " +
                     "GNSTITOT.TRANSFERRED + GNSTITOT.PURAMNT + GNSTITOT.ACTPRODIN AS puramount, " +
@@ -45,7 +45,7 @@ public class ProductRepository {
                     "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST_I1) " +
                     "ON (ITEMS.LOGICALREF = GNSTITOT.STOCKREF) WHERE (GNSTITOT.INVENNO = -1) ";*/
             
-            String sqlQuery = "Set DateFormat DMY SELECT Items.CODE as code, Items.NAME as name, Upper(Items.STGRPCODE) as groupcode, " +
+            String sqlQuery = "Set DateFormat DMY SELECT Items.LOGICALREF as id, Items.CODE as code, Items.NAME as name, Upper(Items.STGRPCODE) as groupcode, " +
 
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=1) and (CARDREF=Items.LOGICALREF))),0) AS purchaseprice, " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=2) and (CARDREF=Items.LOGICALREF))),0) AS saleprice, " +
@@ -91,6 +91,7 @@ public class ProductRepository {
             while (resultSet.next()) {
                 itemsList.add(
                         new Product(
+                                resultSet.getLong("id"),
                                 resultSet.getString("code"),
                                 resultSet.getString("name"),
                                 resultSet.getString("groupcode"),
@@ -120,7 +121,7 @@ public class ProductRepository {
         utility.CheckCompany(firmno, periodno);
         List<ProductInventory> itemsInventoryList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Select ITEMS.CODE code, ITEMS.NAME name, ITEMS.STGRPCODE groupcode, " +
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.AMOUNT*(STRNS.UINFO2/(CASE STRNS.UINFO1 WHEN 0 THEN 1 ELSE STRNS.UINFO1 END))) " +
@@ -187,7 +188,7 @@ public class ProductRepository {
         utility.CheckCompany(firmno, periodno);
         List<ProductFiche> itemsFicheList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE as item_trcode, " +
                     "STFIC.FICHENO AS item_ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS item_date, CLNTC.CODE as item_clientcode, " +
@@ -245,7 +246,7 @@ public class ProductRepository {
         utility.CheckCompany(firmno, periodno);
         List<ProductEnough> itemsPriceList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "SELECT ROW_NUMBER() OVER(ORDER BY code ASC) AS row, ITEMS.CODE AS code, " +
                     "ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupcode, GNSTITOT.ONHAND AS onhand, " +
@@ -280,7 +281,7 @@ public class ProductRepository {
         utility.CheckCompany(firmno, periodno);
         List<ProductPrice> itemsPriceList = null;
 
-        try (Connection connection = mainRepository.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "SELECT ROW_NUMBER() OVER(ORDER BY code ASC) AS row, ITEMS.CODE AS code, " +
                     "ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupcode, GNSTITOT.ONHAND AS onhand, " +

@@ -1,12 +1,11 @@
 package kg.bakirov.alpha.repository;
 
-import kg.bakirov.alpha.helper.DbConnection;
 import kg.bakirov.alpha.model.company.Firm;
 import kg.bakirov.alpha.model.company.Period;
 import kg.bakirov.alpha.model.company.WareHouse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.CrossOrigin;
-
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,18 +15,11 @@ public class MainRepository {
 
     public static String GLOBAL_FIRM_NO;
     public static String GLOBAL_PERIOD;
+    private final DataSource dataSource;
 
-
-    /* ---------------------------------------- Подключение к базе данных ------------------------------------------------ */
-
-    public Connection getConnection() {
-        Connection connection = null;
-        try {
-            connection = DriverManager.getConnection("jdbc:sqlserver://localhost;databaseName=TIGERDB", "sa", "123456789");
-        } catch (SQLException throwable) {
-            throwable.printStackTrace();
-        }
-        return connection;
+    @Autowired
+    public MainRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
 
@@ -36,7 +28,7 @@ public class MainRepository {
 
         List<Firm> firmList = new ArrayList<>();
 
-        try(Connection connection = getConnection()) {
+        try(Connection connection = dataSource.getConnection()) {
             String sqlQuery = "SELECT NR, NAME, TITLE FROM L_CAPIFIRM WITH(NOLOCK) ORDER BY NR";
 
             Statement statement = connection.createStatement();
@@ -61,7 +53,7 @@ public class MainRepository {
     public List<Period> getPeriodList(int firmNo) {
         List<Period> periodList = new ArrayList<>();
 
-        try(Connection connection = getConnection()) {
+        try(Connection connection = dataSource.getConnection()) {
             String sqlQuery = "SELECT NR, FIRMNR, CONVERT(VARCHAR, BEGDATE, 104) as BEGDATE, CONVERT(VARCHAR, ENDDATE, 104) AS ENDDATE, ACTIVE " +
                     "FROM L_CAPIPERIOD WITH(NOLOCK) WHERE (FIRMNR = " + firmNo + ") ORDER BY NR";
 
@@ -90,7 +82,7 @@ public class MainRepository {
     public List<WareHouse> getWareHouseList(int firmNo) {
         List<WareHouse> wareHouseListList = new ArrayList<>();
 
-        try(Connection connection = getConnection()) {
+        try(Connection connection = dataSource.getConnection()) {
             String sqlQuery = "SELECT LOGICALREF, NR ,FIRMNR, NAME FROM L_CAPIWHOUSE  WHERE (FIRMNR = " + firmNo + ") ORDER BY NR";
 
             Statement statement = connection.createStatement();
@@ -118,7 +110,7 @@ public class MainRepository {
 
         String firm = String.format("%03d", firmno);
 
-        try(Connection connection = DbConnection.getInstance()) {
+        try(Connection connection = dataSource.getConnection()) {
 
             String sqlQuery = "DELETE FROM L_NET DELETE FROM L_GOUSERS DELETE FROM LG_NET_" + firm;
             Statement statement = connection.createStatement();
