@@ -2,7 +2,6 @@ package kg.bakirov.alpha.model.accounts;
 
 public class AccountDebit {
 
-    private long id;
     private String code;
     private String name;
     private String address;
@@ -15,14 +14,6 @@ public class AccountDebit {
     private Double balanceUsd;
 
     public AccountDebit() {
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
     }
 
     public String getCode() {

@@ -139,7 +139,6 @@ public class AccountRepository {
                 int sign = resultSet.getInt("sign");
                 AccountDebit accountDebit = new AccountDebit();
 
-                accountDebit.setId(resultSet.getLong("id"));
                 accountDebit.setCode(resultSet.getString("code"));
                 accountDebit.setName(resultSet.getString("DEFINITION_"));
                 accountDebit.setAddress(resultSet.getString("ADDR1"));
@@ -186,8 +185,8 @@ public class AccountRepository {
                 accountDebitList.add(entry.getValue());
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return accountDebitList;
     }
@@ -202,7 +201,7 @@ public class AccountRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY SELECT CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
+            String sqlQuery = "SET DATEFORMAT DMY SELECT TOP 300 CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
                     "CONVERT(varchar, CTRNS.DATE_, 23) AS date, CTRNS.TRCODE, CTRNS.SIGN, " +
                     "ROUND(CTRNS.REPORTNET, 2) AS reportnet, CTRNS.TRANNO, CTRNS.LINEEXP, INVFC.FROMKASA, " +
                     "INVFC.FICHENO, CASE WHEN CTRNS.TRCODE=14 AND CTRNS.MODULENR=5 THEN 0 ELSE 1 END AS TRTEMP, " +
@@ -317,7 +316,7 @@ public class AccountRepository {
 
     /* ------------------------------------------ Выписка одного контрагента ---------------------------------------------------- */
 
-    public List<AccountExtract> getAccountExtract(int firmno, int periodno, String begdate, String enddate, int account) {
+    public List<AccountExtract> getAccountExtract(int firmno, int periodno, String begdate, String enddate, String code) {
 
         utility.CheckCompany(firmno, periodno);
         List<AccountExtract> accountExtractList = null;
@@ -339,7 +338,7 @@ public class AccountRepository {
                     "ON (CTRNS.CLIENTREF = CLNTC.LOGICALREF) " +
                     "WHERE (CTRNS.BRANCH IN (0)) AND (CTRNS.DEPARTMENT IN (0)) " +
                     "AND (CTRNS.DATE_ >= '" + begdate + "' AND CTRNS.DATE_ <= '" + enddate + "')  " +
-                    "AND (CLNTC.LOGICALREF = " + account + ") " +
+                    "AND (CLNTC.CODE = '" + code + "') " +
                     "ORDER BY CLNTC.CODE, CTRNS.DATE_, TRTEMP ";
 
             Statement statement = connection.createStatement();

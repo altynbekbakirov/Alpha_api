@@ -42,8 +42,8 @@ public class MainRepository {
                         )
                 );
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return firmList;
     }
@@ -71,8 +71,8 @@ public class MainRepository {
                         )
                 );
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return periodList;
     }
@@ -98,8 +98,8 @@ public class MainRepository {
                         )
                 );
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return wareHouseListList;
     }

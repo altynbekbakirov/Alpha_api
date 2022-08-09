@@ -1,22 +1,19 @@
 package kg.bakirov.alpha.helper;
 
-import kg.bakirov.alpha.model.company.Firm;
-import kg.bakirov.alpha.model.company.Period;
-import kg.bakirov.alpha.repository.MainRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import java.util.List;
+import javax.sql.DataSource;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
 @Component
 public class Utility {
 
-    private final MainRepository mainRepository;
+    private final DataSource dataSource;
 
     @Autowired
-    public Utility(MainRepository mainRepository) {
-        this.mainRepository = mainRepository;
+    public Utility(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     public void CheckCompany(int firmNo, int periodNo) {

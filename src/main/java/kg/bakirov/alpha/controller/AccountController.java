@@ -53,10 +53,10 @@ public class AccountController {
         }
     }
 
-    @PostMapping("/extract/{id}")
-    public ResponseEntity<?> accountExtractOne(@RequestBody ResponseAccount response, @PathVariable int id) {
+    @PostMapping("/extract/{code}")
+    public ResponseEntity<?> accountExtractOne(@RequestBody ResponseAccount response, @PathVariable String code) {
         try {
-            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), id));
+            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

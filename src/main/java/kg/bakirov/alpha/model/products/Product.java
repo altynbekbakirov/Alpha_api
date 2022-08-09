@@ -2,7 +2,6 @@ package kg.bakirov.alpha.model.products;
 
 public class Product {
 
-    private long item_id;
     private String item_code;
     private String item_name;
     private String item_group;
@@ -15,8 +14,7 @@ public class Product {
     private double item_purchase_sum;
     private double item_sale_sum;
 
-    public Product(long item_id, String item_code, String item_name, String item_group, double item_purchase_price, double item_sale_price, int item_purAmount, int item_salAmount, double item_salCurr, int item_onHand, double item_purchase_sum, double item_sale_sum) {
-        this.item_id = item_id;
+    public Product(String item_code, String item_name, String item_group, double item_purchase_price, double item_sale_price, int item_purAmount, int item_salAmount, double item_salCurr, int item_onHand, double item_purchase_sum, double item_sale_sum) {
         this.item_code = item_code;
         this.item_name = item_name;
         this.item_group = item_group;
@@ -30,13 +28,6 @@ public class Product {
         this.item_sale_sum = item_sale_sum;
     }
 
-    public long getItem_id() {
-        return item_id;
-    }
-
-    public void setItem_id(long item_id) {
-        this.item_id = item_id;
-    }
 
     public String getItem_code() {
         return item_code;

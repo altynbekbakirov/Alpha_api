@@ -45,7 +45,7 @@ public class ProductRepository {
                     "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST_I1) " +
                     "ON (ITEMS.LOGICALREF = GNSTITOT.STOCKREF) WHERE (GNSTITOT.INVENNO = -1) ";*/
             
-            String sqlQuery = "Set DateFormat DMY SELECT Items.LOGICALREF as id, Items.CODE as code, Items.NAME as name, Upper(Items.STGRPCODE) as groupcode, " +
+            String sqlQuery = "Set DateFormat DMY SELECT Items.CODE as code, Items.NAME as name, Upper(Items.STGRPCODE) as groupcode, " +
 
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=1) and (CARDREF=Items.LOGICALREF))),0) AS purchaseprice, " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=2) and (CARDREF=Items.LOGICALREF))),0) AS saleprice, " +
@@ -91,7 +91,6 @@ public class ProductRepository {
             while (resultSet.next()) {
                 itemsList.add(
                         new Product(
-                                resultSet.getLong("id"),
                                 resultSet.getString("code"),
                                 resultSet.getString("name"),
                                 resultSet.getString("groupcode"),
