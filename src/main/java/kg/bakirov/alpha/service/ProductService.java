@@ -1,10 +1,7 @@
 package kg.bakirov.alpha.service;
 
 import kg.bakirov.alpha.exception.NotFoundException;
-import kg.bakirov.alpha.model.products.Product;
-import kg.bakirov.alpha.model.products.ProductFiche;
-import kg.bakirov.alpha.model.products.ProductInventory;
-import kg.bakirov.alpha.model.products.ProductPrice;
+import kg.bakirov.alpha.model.products.*;
 import kg.bakirov.alpha.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,6 +40,30 @@ public class ProductService {
         List<ProductPrice> productPriceList = productRepository.getProductPrice(firmNo, periodNo);
         if (productPriceList.size() == 0) throw new NotFoundException("No records");
         return productPriceList;
+    }
+
+    public List<ProductTransaction> getProductTransactions(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
+        List<ProductTransaction> productTransactionList = productRepository.getProductTransactions(firmNo, periodNo, begDate, endDate, sourceindex);
+        if (productTransactionList.size() == 0) throw new NotFoundException("No records");
+        return productTransactionList;
+    }
+
+    public List<ProductTransaction> getProductTransaction(int firmNo, int periodNo, String begDate, String endDate, int sourceindex, String code) throws NotFoundException {
+        List<ProductTransaction> productTransactionList = productRepository.getProductTransaction(firmNo, periodNo, begDate, endDate, sourceindex, code);
+        if (productTransactionList.size() == 0) throw new NotFoundException("No records");
+        return productTransactionList;
+    }
+
+    public List<ProductPrices> getProductsPrices(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
+        List<ProductPrices> productPrices = productRepository.getProductsPrices(firmNo, periodNo, begDate, endDate, sourceindex);
+        if (productPrices.size() == 0) throw new NotFoundException("No records");
+        return productPrices;
+    }
+
+    public List<ProductPrices> getProductPrices(int firmNo, int periodNo, String begDate, String endDate, int sourceindex, String code) throws NotFoundException {
+        List<ProductPrices> productPrices = productRepository.getProductPrices(firmNo, periodNo, begDate, endDate, sourceindex, code);
+        if (productPrices.size() == 0) throw new NotFoundException("No records");
+        return productPrices;
     }
 
 }

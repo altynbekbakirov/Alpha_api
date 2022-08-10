@@ -64,4 +64,63 @@ public class ProductController {
         }
     }
 
+    @PostMapping("/transactions")
+    public ResponseEntity<?> productsTransactions(@RequestBody ResponseModel response) {
+        try {
+            return ResponseEntity.ok(productService.getProductTransactions(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/transactions/{code}")
+    public ResponseEntity<?> productTransactions(@RequestBody ResponseModel response, @PathVariable String code) {
+        try {
+            return ResponseEntity.ok(productService.getProductTransaction(
+                    response.getFirmno(),
+                    response.getPeriodno(),
+                    response.getBegdate(),
+                    response.getEnddate(),
+                    response.getSourceindex(), code));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/prices")
+    public ResponseEntity<?> productsPrices(@RequestBody ResponseModel response) {
+        try {
+            return ResponseEntity.ok(productService.getProductsPrices(
+                    response.getFirmno(),
+                    response.getPeriodno(),
+                    response.getBegdate(),
+                    response.getEnddate(),
+                    response.getSourceindex()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/prices/{code}")
+    public ResponseEntity<?> productPrices(@RequestBody ResponseModel response, @PathVariable String code) {
+        try {
+            return ResponseEntity.ok(productService.getProductPrices(
+                    response.getFirmno(),
+                    response.getPeriodno(),
+                    response.getBegdate(),
+                    response.getEnddate(),
+                    response.getSourceindex(), code));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
 }

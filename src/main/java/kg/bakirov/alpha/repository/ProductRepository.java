@@ -317,4 +317,206 @@ public class ProductRepository {
         return itemsPriceList;
     }
 
+
+    /* ---------------------------------------- Движения товаров ------------------------------------------------ */
+
+    public List<ProductTransaction> getProductTransactions(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<ProductTransaction> itemsPriceList = null;
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "Set DateFormat DMY " +
+                    "SELECT CONVERT(varchar, LGMAIN.DATE_, 23) AS date, STFIC.FICHENO AS ficheno, LGMAIN.TRCODE AS trcode, " +
+                    "(SELECT TOP 1 CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = STFIC.CLIENTREF) AS clientcode, " +
+                    "(SELECT TOP 1 DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = STFIC.CLIENTREF) AS clientname, " +
+                    "LGMAIN.AMOUNT AS count, LGMAIN.PRICE AS price, LGMAIN.PRPRICE AS priceusd, " +
+                    "LGMAIN.LINENET AS total, (LGMAIN.AMOUNT * LGMAIN.PRPRICE) AS totalusd " +
+                    " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE LGMAIN, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE STFIC " +
+                    " LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC WITH(NOLOCK) ON (STFIC.INVOICEREF   =  INVFC.LOGICALREF) " +
+                    " WHERE (LGMAIN.LINETYPE IN (0, 1, 5, 6, 8, 9, 11)) AND (LGMAIN.STFICHEREF <> 0) " +
+                    "AND (LGMAIN.STFICHEREF = STFIC.LOGICALREF) " +
+                    "AND (((STFIC.GRPCODE = 1)) OR ((STFIC.GRPCODE = 2)) OR ((STFIC.GRPCODE = 3)) OR (STFIC.GRPCODE = 0)) " +
+                    "AND (LGMAIN.DATE_ >= '"+ begdate + "') AND (LGMAIN.DATE_ <= '" + enddate + "') " +
+                    "AND (LGMAIN.SOURCEINDEX = " + sourceindex + ") " +
+                    "ORDER BY " +
+                    "LGMAIN.DATE_, LGMAIN.FTIME, LGMAIN.IOCODE, LGMAIN.SOURCEINDEX";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            itemsPriceList = new ArrayList<>();
+
+            while (resultSet.next()) {
+
+                itemsPriceList.add(
+                        new ProductTransaction(
+                                resultSet.getString("date"),
+                                resultSet.getString("ficheno"),
+                                resultSet.getInt("trcode"),
+                                resultSet.getString("clientcode"),
+                                resultSet.getString("clientname"),
+                                resultSet.getInt("count"),
+                                resultSet.getDouble("price"),
+                                resultSet.getDouble("priceusd"),
+                                resultSet.getDouble("total"),
+                                resultSet.getDouble("totalusd")
+                        )
+                );
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return itemsPriceList;
+    }
+
+
+    /* ---------------------------------------- Движения одного товара ------------------------------------------------ */
+    public List<ProductTransaction> getProductTransaction(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<ProductTransaction> itemsPriceList = null;
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "Set DateFormat DMY " +
+                    "SELECT CONVERT(varchar, LGMAIN.DATE_, 23) AS date, STFIC.FICHENO AS ficheno, LGMAIN.TRCODE AS trcode, " +
+                    "(SELECT TOP 1 CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = STFIC.CLIENTREF) AS clientcode, " +
+                    "(SELECT TOP 1 DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = STFIC.CLIENTREF) AS clientname, " +
+                    "LGMAIN.AMOUNT AS count, LGMAIN.PRICE AS price, LGMAIN.PRPRICE AS priceusd, " +
+                    "LGMAIN.LINENET AS total, (LGMAIN.AMOUNT * LGMAIN.PRPRICE) AS totalusd " +
+                    " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE LGMAIN, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE STFIC " +
+                    " LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC WITH(NOLOCK) ON (STFIC.INVOICEREF   =  INVFC.LOGICALREF) " +
+                    " WHERE (LGMAIN.LINETYPE IN (0, 1, 5, 6, 8, 9, 11)) AND (LGMAIN.STFICHEREF <> 0) " +
+                    "AND (LGMAIN.STFICHEREF = STFIC.LOGICALREF) " +
+                    "AND (((STFIC.GRPCODE = 1)) OR ((STFIC.GRPCODE = 2)) OR ((STFIC.GRPCODE = 3)) OR (STFIC.GRPCODE = 0)) " +
+                    "AND (LGMAIN.DATE_ >= '"+ begdate + "') AND (LGMAIN.DATE_ <= '" + enddate + "') " +
+                    "AND (LGMAIN.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND (LGMAIN.STOCKREF = (SELECT TOP 1 LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE CODE = '" + code + "')) " +
+                    "ORDER BY " +
+                    "LGMAIN.DATE_, LGMAIN.FTIME, LGMAIN.IOCODE, LGMAIN.SOURCEINDEX";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            itemsPriceList = new ArrayList<>();
+
+            while (resultSet.next()) {
+
+                itemsPriceList.add(
+                        new ProductTransaction(
+                                resultSet.getString("date"),
+                                resultSet.getString("ficheno"),
+                                resultSet.getInt("trcode"),
+                                resultSet.getString("clientcode"),
+                                resultSet.getString("clientname"),
+                                resultSet.getInt("count"),
+                                resultSet.getDouble("price"),
+                                resultSet.getDouble("priceusd"),
+                                resultSet.getDouble("total"),
+                                resultSet.getDouble("totalusd")
+                        )
+                );
+            }
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return itemsPriceList;
+    }
+
+
+    /* ---------------------------------------- Цены всех товаров ------------------------------------------------ */
+    public List<ProductPrices> getProductsPrices(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<ProductPrices> itemsPrices = null;
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "SELECT ITMSC.CODE AS code, ITMSC.NAME AS name, LGMAIN.DEFINITION_ AS definition, " +
+                    "LGMAIN.PTYPE AS ptype, LGMAIN.PRICE AS price, " +
+                    "(SELECT CURCODE FROM L_CURRENCYLIST WHERE LOGICALREF = LGMAIN.CURRENCY) AS currency, " +
+                    "CONVERT(varchar, LGMAIN.BEGDATE, 23) AS begdate, " +
+                    "CONVERT(varchar, LGMAIN.ENDDATE, 23) AS enddate, LGMAIN.ACTIVE AS active " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
+                    "WHERE (LGMAIN.ACTIVE = 0) AND (LGMAIN.MTRLTYPE = 0) " +
+                    "ORDER BY " +
+                    "LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            itemsPrices = new ArrayList<>();
+
+            while (resultSet.next()) {
+
+                itemsPrices.add(
+                        new ProductPrices(
+                                resultSet.getString("code"),
+                                resultSet.getString("name"),
+                                resultSet.getString("definition"),
+                                resultSet.getInt("ptype"),
+                                resultSet.getDouble("price"),
+                                resultSet.getString("currency"),
+                                resultSet.getString("begdate"),
+                                resultSet.getString("enddate"),
+                                resultSet.getInt("active")
+                        )
+                );
+            }
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return itemsPrices;
+    }
+    
+
+    /* ---------------------------------------- Цены товара ------------------------------------------------ */
+    public List<ProductPrices> getProductPrices(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<ProductPrices> itemsPrices = null;
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "SELECT ITMSC.CODE AS code, ITMSC.NAME AS name, LGMAIN.DEFINITION_ AS definition, " +
+                    "LGMAIN.PTYPE AS ptype, LGMAIN.PRICE AS price, " +
+                    "(SELECT CURCODE FROM L_CURRENCYLIST WHERE LOGICALREF = LGMAIN.CURRENCY) AS currency, " +
+                    "CONVERT(varchar, LGMAIN.BEGDATE, 23) AS begdate, " +
+                    "CONVERT(varchar, LGMAIN.ENDDATE, 23) AS enddate, LGMAIN.ACTIVE AS active " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
+                    "WHERE (LGMAIN.ACTIVE = 0) AND ( ITMSC.CODE = '" + code + "') AND (LGMAIN.MTRLTYPE = 0) " +
+                    "ORDER BY " +
+                    "LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            itemsPrices = new ArrayList<>();
+
+            while (resultSet.next()) {
+
+                itemsPrices.add(
+                        new ProductPrices(
+                                resultSet.getString("code"),
+                                resultSet.getString("name"),
+                                resultSet.getString("definition"),
+                                resultSet.getInt("ptype"),
+                                resultSet.getDouble("price"),
+                                resultSet.getString("currency"),
+                                resultSet.getString("begdate"),
+                                resultSet.getString("enddate"),
+                                resultSet.getInt("active")
+                        )
+                );
+            }
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return itemsPrices;
+    }
+
 }
