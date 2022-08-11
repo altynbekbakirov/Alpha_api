@@ -53,6 +53,17 @@ public class ProductController {
         }
     }
 
+    @PostMapping("/fiche/{fiche}")
+    public ResponseEntity<?> productFiche(@RequestBody ResponseModel response, @PathVariable String fiche) {
+        try {
+            return ResponseEntity.ok(productService.getFiche(response.getFirmno(), response.getPeriodno(), Integer.parseInt(fiche)));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/price")
     public ResponseEntity<?> productsPrice(@RequestBody ResponseModel response) {
         try {

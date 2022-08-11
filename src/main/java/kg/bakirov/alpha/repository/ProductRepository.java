@@ -182,30 +182,21 @@ public class ProductRepository {
 
     /* ---------------------------------------- Список документов ------------------------------------------------ */
 
-    public List<ProductFiche> getProductFiche(int firmno, int periodno, String begdate, String enddate, int sourceindex ) {
+    public List<ProductFiches> getProductFiche(int firmno, int periodno, String begdate, String enddate, int sourceindex ) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductFiche> itemsFicheList = null;
+        List<ProductFiches> itemsFicheList = null;
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE as item_trcode, " +
-                    "STFIC.FICHENO AS item_ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS item_date, CLNTC.CODE as item_clientcode, " +
-                    "CLNTC.DEFINITION_ as item_clientname, ROUND(CASE STFIC.IOCODE WHEN 1 THEN STFIC.GROSSTOTAL ELSE -STFIC.GROSSTOTAL END, 0) AS item_gross, " +
-                    "ROUND(STFIC.TOTALDISCOUNTS, 0) AS item_discounts, ROUND(STFIC.TOTALEXPENSES, 0) AS item_expenses, " +
-                    "ROUND(CASE STFIC.IOCODE WHEN 1 THEN STFIC.NETTOTAL ELSE -STFIC.NETTOTAL END, 0) as item_net, STFIC.IOCODE item_type " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE STFIC WITH(NOLOCK) " +
-                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC WITH(NOLOCK) ON (STFIC.INVOICEREF = INVFC.LOGICALREF) " +
-                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (STFIC.CLIENTREF = CLNTC.LOGICALREF) " +
-                    "LEFT OUTER JOIN LG_SLSMAN SLSMC WITH(NOLOCK) ON (STFIC.SALESMANREF = SLSMC.LOGICALREF) " +
-                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PAYPLANS PAYPL WITH(NOLOCK) ON (STFIC.PAYDEFREF = PAYPL.LOGICALREF) " +
-                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT sWSp WITH(NOLOCK) ON (STFIC.SOURCEWSREF = sWSp.LOGICALREF) " +
-                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
-                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
-                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STFIC.CANCELLED = 0) AND ((STFIC.STATUS IN (0,1)) OR (STFIC.TRCODE IN (11,12,13,14,25,26,50,51))) AND (STFIC.SOURCEINDEX = " + sourceindex + ") " +
-                    "AND ((STFIC.DATE_>=" + "'" + begdate + "') AND (STFIC.DATE_<=" + "'" + enddate + "')) " +
-                    "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
+            String sqlQuery = "Set DateFormat DMY " +
+                    "SELECT LGMAIN.FICHENO AS ficheno, CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.TRCODE AS trcode, " +
+                    "LGMAIN.REPORTNET AS net, LGMAIN.NETTOTAL AS nettotal, LGMAIN.REPORTRATE AS reportrate " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE LGMAIN " +
+                    "WHERE (LGMAIN.GRPCODE = 3) AND (LGMAIN.DATE_ >= '"+ begdate + "') " +
+                    "AND (LGMAIN.DATE_ <= '"+ enddate + "') AND (LGMAIN.SOURCEINDEX = " + sourceindex + ") " +
+                    "ORDER BY " +
+                    "LGMAIN.GRPCODE, LGMAIN.DATE_, LGMAIN.FTIME, LGMAIN.IOCODE, LGMAIN.TRCODE, LGMAIN.LOGICALREF ";
 
             Statement statement = connection.createStatement();
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -215,17 +206,13 @@ public class ProductRepository {
             while (resultSet.next()) {
 
                 itemsFicheList.add(
-                        new ProductFiche(
-                                resultSet.getLong("item_trcode"),
-                                resultSet.getString("item_ficheno"),
-                                resultSet.getString("item_date"),
-                                resultSet.getString("item_clientcode"),
-                                resultSet.getString("item_clientname"),
-                                resultSet.getDouble("item_gross"),
-                                resultSet.getDouble("item_discounts"),
-                                resultSet.getDouble("item_expenses"),
-                                resultSet.getDouble("item_net"),
-                                resultSet.getString("item_type")
+                        new ProductFiches(
+                                resultSet.getString("ficheno"),
+                                resultSet.getString("date"),
+                                resultSet.getInt("trcode"),
+                                resultSet.getDouble("net"),
+                                resultSet.getDouble("nettotal"),
+                                resultSet.getDouble("reportrate")
                         )
                 );
             }
@@ -236,6 +223,53 @@ public class ProductRepository {
         return itemsFicheList;
     }
 
+
+    /* ---------------------------------------- Контент документа ------------------------------------------------ */
+
+    public List<ProductFiche> getFiche(int firmno, int periodno, int fiche ) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<ProductFiche> itemsFicheList = null;
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "SELECT " +
+                    "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE LOGICALREF = STRNS.STOCKREF) AS code, \n" +
+                    "(SELECT NAME FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE LOGICALREF = STRNS.STOCKREF) AS name, \n" +
+                    "STRNS.AMOUNT AS count, STRNS.PRICE AS price, " +
+                    "(STRNS.PRICE / STRNS.REPORTRATE) AS priceusd, " +
+                    "STRNS.TOTAL AS total, (STRNS.TOTAL / STRNS.REPORTRATE) AS totalusd, " +
+                    "STRNS.LINEEXP AS definition " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
+                    "WHERE (STRNS.STFICHEREF = 1) AND (STRNS.DETLINE = 0) " +
+                    "ORDER BY STRNS.STFICHEREF, STRNS.STFICHELNNO ";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            itemsFicheList = new ArrayList<>();
+
+            while (resultSet.next()) {
+
+                itemsFicheList.add(
+                        new ProductFiche(
+                                resultSet.getString("code"),
+                                resultSet.getString("name"),
+                                resultSet.getInt("count"),
+                                resultSet.getDouble("price"),
+                                resultSet.getDouble("priceUsd"),
+                                resultSet.getDouble("total"),
+                                resultSet.getDouble("totalusd"),
+                                resultSet.getString("definition")
+                        )
+                );
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return itemsFicheList;
+    }
 
 
     /* ---------------------------------------- Достаточность товаров ------------------------------------------------ */
@@ -434,7 +468,8 @@ public class ProductRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SELECT ITMSC.CODE AS code, ITMSC.NAME AS name, LGMAIN.DEFINITION_ AS definition, " +
+            String sqlQuery = "Set DateFormat DMY " +
+                    " SELECT ITMSC.CODE AS code, ITMSC.NAME AS name, LGMAIN.DEFINITION_ AS definition, " +
                     "LGMAIN.PTYPE AS ptype, LGMAIN.PRICE AS price, " +
                     "(SELECT CURCODE FROM L_CURRENCYLIST WHERE LOGICALREF = LGMAIN.CURRENCY) AS currency, " +
                     "CONVERT(varchar, LGMAIN.BEGDATE, 23) AS begdate, " +
@@ -442,6 +477,7 @@ public class ProductRepository {
                     "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
                     "WHERE (LGMAIN.ACTIVE = 0) AND (LGMAIN.MTRLTYPE = 0) " +
+                    "AND (LGMAIN.BEGDATE <= '"+ begdate + "') AND (LGMAIN.ENDDATE >= '" + enddate + "') " +
                     "ORDER BY " +
                     "LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
 
@@ -481,7 +517,8 @@ public class ProductRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SELECT ITMSC.CODE AS code, ITMSC.NAME AS name, LGMAIN.DEFINITION_ AS definition, " +
+            String sqlQuery = "Set DateFormat DMY " +
+                    "SELECT ITMSC.CODE AS code, ITMSC.NAME AS name, LGMAIN.DEFINITION_ AS definition, " +
                     "LGMAIN.PTYPE AS ptype, LGMAIN.PRICE AS price, " +
                     "(SELECT CURCODE FROM L_CURRENCYLIST WHERE LOGICALREF = LGMAIN.CURRENCY) AS currency, " +
                     "CONVERT(varchar, LGMAIN.BEGDATE, 23) AS begdate, " +
@@ -489,6 +526,7 @@ public class ProductRepository {
                     "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
                     "WHERE (LGMAIN.ACTIVE = 0) AND ( ITMSC.CODE = '" + code + "') AND (LGMAIN.MTRLTYPE = 0) " +
+                    "AND (LGMAIN.BEGDATE <= '"+ begdate + "') AND (LGMAIN.ENDDATE >= '" + enddate + "') " +
                     "ORDER BY " +
                     "LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
 

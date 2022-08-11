@@ -30,10 +30,16 @@ public class ProductService {
         return productInventoryList;
     }
 
-    public List<ProductFiche> getProductsFiche(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
-        List<ProductFiche> productFicheList = productRepository.getProductFiche(firmNo, periodNo, begDate, endDate, sourceindex);
-        if (productFicheList.size() == 0) throw new NotFoundException("No records");
-        return productFicheList;
+    public List<ProductFiches> getProductsFiche(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
+        List<ProductFiches> productFichesList = productRepository.getProductFiche(firmNo, periodNo, begDate, endDate, sourceindex);
+        if (productFichesList.size() == 0) throw new NotFoundException("No records");
+        return productFichesList;
+    }
+
+    public List<ProductFiche> getFiche(int firmNo, int periodNo, int fiche) throws NotFoundException {
+        List<ProductFiche> productFichesList = productRepository.getFiche(firmNo, periodNo, fiche);
+        if (productFichesList.size() == 0) throw new NotFoundException("No records");
+        return productFichesList;
     }
 
     public List<ProductPrice> getProductsPrice(int firmNo, int periodNo) throws NotFoundException {

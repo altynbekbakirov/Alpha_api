@@ -1,108 +1,87 @@
 package kg.bakirov.alpha.model.products;
 
 public class ProductFiche {
+    private String code;
+    private String name;
+    private Integer count;
+    private Double price;
+    private Double priceUsd;
+    private Double total;
+    private Double totalUsd;
+    private String definition;
 
-    private Long item_trCode;
-    private String item_ficheNo;
-    private String item_date;
-    private String item_clientCode;
-    private String item_clientName;
-    private double item_gross;
-    private double item_discounts;
-    private double item_expenses;
-    private double item_net;
-    private String item_type;
-
-    public ProductFiche(Long item_trCode, String item_ficheNo, String item_date, String item_clientCode, String item_clientName, double item_gross, double item_discounts, double item_expenses, double item_net, String item_type) {
-        this.item_trCode = item_trCode;
-        this.item_ficheNo = item_ficheNo;
-        this.item_date = item_date;
-        this.item_clientCode = item_clientCode;
-        this.item_clientName = item_clientName;
-        this.item_gross = item_gross;
-        this.item_discounts = item_discounts;
-        this.item_expenses = item_expenses;
-        this.item_net = item_net;
-        this.item_type = item_type;
+    public ProductFiche(String code, String name, Integer count, Double price, Double priceUsd, Double total, Double totalUsd, String definition) {
+        this.code = code;
+        this.name = name;
+        this.count = count;
+        this.price = price;
+        this.priceUsd = priceUsd;
+        this.total = total;
+        this.totalUsd = totalUsd;
+        this.definition = definition;
     }
 
-    public Long getItem_trCode() {
-        return item_trCode;
+    public String getCode() {
+        return code;
     }
 
-    public void setItem_trCode(Long item_trCode) {
-        this.item_trCode = item_trCode;
+    public void setCode(String code) {
+        this.code = code;
     }
 
-    public String getItem_ficheNo() {
-        return item_ficheNo;
+    public String getName() {
+        return name;
     }
 
-    public void setItem_ficheNo(String item_ficheNo) {
-        this.item_ficheNo = item_ficheNo;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public String getItem_date() {
-        return item_date;
+    public Integer getCount() {
+        return count;
     }
 
-    public void setItem_date(String item_date) {
-        this.item_date = item_date;
+    public void setCount(Integer count) {
+        this.count = count;
     }
 
-    public String getItem_clientCode() {
-        return item_clientCode;
+    public Double getPrice() {
+        return price;
     }
 
-    public void setItem_clientCode(String item_clientCode) {
-        this.item_clientCode = item_clientCode;
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
-    public String getItem_clientName() {
-        return item_clientName;
+    public Double getPriceUsd() {
+        return priceUsd;
     }
 
-    public void setItem_clientName(String item_clientName) {
-        this.item_clientName = item_clientName;
+    public void setPriceUsd(Double priceUsd) {
+        this.priceUsd = priceUsd;
     }
 
-    public double getItem_gross() {
-        return item_gross;
+    public Double getTotal() {
+        return total;
     }
 
-    public void setItem_gross(double item_gross) {
-        this.item_gross = item_gross;
+    public void setTotal(Double total) {
+        this.total = total;
     }
 
-    public double getItem_discounts() {
-        return item_discounts;
+    public Double getTotalUsd() {
+        return totalUsd;
     }
 
-    public void setItem_discounts(double item_discounts) {
-        this.item_discounts = item_discounts;
+    public void setTotalUsd(Double totalUsd) {
+        this.totalUsd = totalUsd;
     }
 
-    public double getItem_expenses() {
-        return item_expenses;
+    public String getDefinition() {
+        return definition;
     }
 
-    public void setItem_expenses(double item_expenses) {
-        this.item_expenses = item_expenses;
-    }
-
-    public double getItem_net() {
-        return item_net;
-    }
-
-    public void setItem_net(double item_net) {
-        this.item_net = item_net;
-    }
-
-    public String getItem_type() {
-        return item_type;
-    }
-
-    public void setItem_type(String item_type) {
-        this.item_type = item_type;
+    public void setDefinition(String definition) {
+        this.definition = definition;
     }
 }
