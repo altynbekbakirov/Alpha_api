@@ -18,8 +18,14 @@ public class SaleService {
         this.saleRepository = saleRepository;
     }
 
-    public List<SaleFiche> getSales(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
-        List<SaleFiche> sales = saleRepository.getSales(firmNo, periodNo, begDate, endDate, sourceIndex);
+    public List<SaleFiches> getSales(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
+        List<SaleFiches> sales = saleRepository.getSales(firmNo, periodNo, begDate, endDate, sourceIndex);
+        if (sales.size() == 0) throw new NotFoundException("No records");
+        return sales;
+    }
+
+    public List<SaleFiche> getFiche(int firmNo, int periodNo, int fiche) throws NotFoundException {
+        List<SaleFiche> sales = saleRepository.getFiche(firmNo, periodNo, fiche);
         if (sales.size() == 0) throw new NotFoundException("No records");
         return sales;
     }

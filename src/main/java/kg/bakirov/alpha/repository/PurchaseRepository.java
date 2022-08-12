@@ -1,10 +1,7 @@
 package kg.bakirov.alpha.repository;
 
 import kg.bakirov.alpha.helper.Utility;
-import kg.bakirov.alpha.model.purchases.PurchaseClient;
-import kg.bakirov.alpha.model.purchases.PurchaseFiche;
-import kg.bakirov.alpha.model.purchases.PurchaseMonth;
-import kg.bakirov.alpha.model.purchases.PurchaseTotal;
+import kg.bakirov.alpha.model.purchases.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -32,10 +29,10 @@ public class PurchaseRepository {
 
     /* ------------------------------------------ Список документов ---------------------------------------------------- */
 
-    public List<PurchaseFiche> getPurchases(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<PurchaseFiches> getPurchases(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<PurchaseFiche> purchasesFicheList = null;
+        List<PurchaseFiches> purchasesFicheList = null;
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -68,7 +65,7 @@ public class PurchaseRepository {
             while (resultSet.next()) {
 
                 purchasesFicheList.add(
-                        new PurchaseFiche(
+                        new PurchaseFiches(
                                 resultSet.getInt("trcode"),
                                 resultSet.getString("ficheno"),
                                 resultSet.getString("date"),
@@ -89,9 +86,56 @@ public class PurchaseRepository {
         return purchasesFicheList;
     }
 
+    /* ------------------------------------------ Контента документа ---------------------------------------------------- */
+    public List<PurchaseFiche> getFiche(int firmno, int periodno, int fiche) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<PurchaseFiche> purchasesFicheList = null;
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "SELECT " +
+                    "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE LOGICALREF = STRNS.STOCKREF) AS code, " +
+                    "(SELECT NAME FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE LOGICALREF = STRNS.STOCKREF) AS name, " +
+                    "STRNS.DATE_ AS date, STRNS.AMOUNT AS count, " +
+                    "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_UNITSETL WHERE LOGICALREF = STRNS.UOMREF) AS unit, " +
+                    "STRNS.PRICE AS price, STRNS.TOTAL AS total, (STRNS.PRICE / STRNS.REPORTRATE) AS priceusd, " +
+                    "(STRNS.AMOUNT * (STRNS.PRICE / STRNS.REPORTRATE)) AS totalusd " +
+                    " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
+                    " WHERE (STRNS.TRCODE in (1,2,3,13,14,25,50)) AND " +
+                    "(STRNS.INVOICEREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = " + fiche + ")) " +
+                    "ORDER BY STRNS.INVOICEREF, STRNS.INVOICELNNO ";
+
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlQuery);
+
+            purchasesFicheList = new ArrayList<>();
+
+            while (resultSet.next()) {
+
+                purchasesFicheList.add(
+                        new PurchaseFiche(
+                                resultSet.getString("code"),
+                                resultSet.getString("name"),
+                                resultSet.getString("date"),
+                                resultSet.getInt("count"),
+                                resultSet.getString("unit"),
+                                resultSet.getDouble("price"),
+                                resultSet.getDouble("total"),
+                                resultSet.getDouble("priceUsd"),
+                                resultSet.getDouble("totalUsd")
+                        )
+                );
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return purchasesFicheList;
+    }
+
 
     /* ------------------------------------------ Итоговые цифры закупок ---------------------------------------------------- */
-
     public List<PurchaseTotal> getPurchasesTotal(int firmno, int periodno, String begdate, String enddate) {
 
         utility.CheckCompany(firmno, periodno);

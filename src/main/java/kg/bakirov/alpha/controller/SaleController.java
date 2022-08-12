@@ -1,6 +1,7 @@
 package kg.bakirov.alpha.controller;
 
 import kg.bakirov.alpha.exception.NotFoundException;
+import kg.bakirov.alpha.model.purchases.ResponseModel;
 import kg.bakirov.alpha.model.sales.ResponseSale;
 import kg.bakirov.alpha.model.sales.ResponseSale1;
 import kg.bakirov.alpha.service.SaleService;
@@ -25,6 +26,17 @@ public class SaleController {
     public ResponseEntity<?> sales(@RequestBody ResponseSale response) {
         try {
             return ResponseEntity.ok(saleService.getSales(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("{fiche}")
+    public ResponseEntity<?> getFiche(@RequestBody ResponseModel response, @PathVariable String fiche) {
+        try {
+            return ResponseEntity.ok(saleService.getFiche(response.getFirmno(), response.getPeriodno(), Integer.parseInt(fiche)));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

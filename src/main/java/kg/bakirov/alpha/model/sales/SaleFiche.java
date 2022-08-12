@@ -1,65 +1,42 @@
 package kg.bakirov.alpha.model.sales;
 
 public class SaleFiche {
-
-    private int trCode;
-    private String ficheNo;
+    private String code;
+    private String name;
     private String date;
-    private String clientCode;
-    private String clientName;
-    private Double gross;
-    private Double discounts;
-    private Double expenses;
-    private Double net;
-    private Double netUsd;
-    private String managerCode;
-    private String managerName;
+    private Integer count;
+    private String unit;
+    private Double price;
+    private Double total;
+    private Double priceUsd;
+    private Double totalUsd;
 
-    public SaleFiche(int trCode, String ficheNo, String date, String managerCode, String managerName, String clientCode, String clientName, Double gross, Double discounts, Double expenses, Double net, Double netUsd) {
-        this.trCode = trCode;
-        this.ficheNo = ficheNo;
+    public SaleFiche(String code, String name, String date, Integer count, String unit, Double price, Double total, Double priceUsd, Double totalUsd) {
+        this.code = code;
+        this.name = name;
         this.date = date;
-        this.managerCode = managerCode;
-        this.managerName = managerName;
-        this.clientCode = clientCode;
-        this.clientName = clientName;
-        this.gross = gross;
-        this.discounts = discounts;
-        this.expenses = expenses;
-        this.net = net;
-        this.netUsd = netUsd;
+        this.count = count;
+        this.unit = unit;
+        this.price = price;
+        this.total = total;
+        this.priceUsd = priceUsd;
+        this.totalUsd = totalUsd;
     }
 
-    public String getManagerCode() {
-        return managerCode;
+    public String getCode() {
+        return code;
     }
 
-    public void setManagerCode(String managerCode) {
-        this.managerCode = managerCode;
+    public void setCode(String code) {
+        this.code = code;
     }
 
-    public String getManagerName() {
-        return managerName;
+    public String getName() {
+        return name;
     }
 
-    public void setManagerName(String managerName) {
-        this.managerName = managerName;
-    }
-
-    public int getTrCode() {
-        return trCode;
-    }
-
-    public void setTrCode(int trCode) {
-        this.trCode = trCode;
-    }
-
-    public String getFicheNo() {
-        return ficheNo;
-    }
-
-    public void setFicheNo(String ficheNo) {
-        this.ficheNo = ficheNo;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getDate() {
@@ -70,59 +47,51 @@ public class SaleFiche {
         this.date = date;
     }
 
-    public String getClientCode() {
-        return clientCode;
+    public Integer getCount() {
+        return count;
     }
 
-    public void setClientCode(String clientCode) {
-        this.clientCode = clientCode;
+    public void setCount(Integer count) {
+        this.count = count;
     }
 
-    public String getClientName() {
-        return clientName;
+    public String getUnit() {
+        return unit;
     }
 
-    public void setClientName(String clientName) {
-        this.clientName = clientName;
+    public void setUnit(String unit) {
+        this.unit = unit;
     }
 
-    public Double getGross() {
-        return gross;
+    public Double getPrice() {
+        return price;
     }
 
-    public void setGross(Double gross) {
-        this.gross = gross;
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
-    public Double getDiscounts() {
-        return discounts;
+    public Double getTotal() {
+        return total;
     }
 
-    public void setDiscounts(Double discounts) {
-        this.discounts = discounts;
+    public void setTotal(Double total) {
+        this.total = total;
     }
 
-    public Double getExpenses() {
-        return expenses;
+    public Double getPriceUsd() {
+        return priceUsd;
     }
 
-    public void setExpenses(Double expenses) {
-        this.expenses = expenses;
+    public void setPriceUsd(Double priceUsd) {
+        this.priceUsd = priceUsd;
     }
 
-    public Double getNet() {
-        return net;
+    public Double getTotalUsd() {
+        return totalUsd;
     }
 
-    public void setNet(Double net) {
-        this.net = net;
-    }
-
-    public Double getNetUsd() {
-        return netUsd;
-    }
-
-    public void setNetUsd(Double netUsd) {
-        this.netUsd = netUsd;
+    public void setTotalUsd(Double totalUsd) {
+        this.totalUsd = totalUsd;
     }
 }

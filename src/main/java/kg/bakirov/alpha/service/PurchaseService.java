@@ -1,10 +1,7 @@
 package kg.bakirov.alpha.service;
 
 import kg.bakirov.alpha.exception.NotFoundException;
-import kg.bakirov.alpha.model.purchases.PurchaseClient;
-import kg.bakirov.alpha.model.purchases.PurchaseFiche;
-import kg.bakirov.alpha.model.purchases.PurchaseMonth;
-import kg.bakirov.alpha.model.purchases.PurchaseTotal;
+import kg.bakirov.alpha.model.purchases.*;
 import kg.bakirov.alpha.repository.PurchaseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,8 +18,14 @@ public class PurchaseService {
         this.purchaseRepository = purchaseRepository;
     }
 
-    public List<PurchaseFiche> getPurchases(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
-        List<PurchaseFiche> purchases = purchaseRepository.getPurchases(firmNo, periodNo, begDate, endDate, sourceindex);
+    public List<PurchaseFiches> getPurchases(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
+        List<PurchaseFiches> purchases = purchaseRepository.getPurchases(firmNo, periodNo, begDate, endDate, sourceindex);
+        if (purchases.size() == 0) throw new NotFoundException("No records");
+        return purchases;
+    }
+
+    public List<PurchaseFiche> getfiche(int firmNo, int periodNo, int fiche) throws NotFoundException {
+        List<PurchaseFiche> purchases = purchaseRepository.getFiche(firmNo, periodNo, fiche);
         if (purchases.size() == 0) throw new NotFoundException("No records");
         return purchases;
     }

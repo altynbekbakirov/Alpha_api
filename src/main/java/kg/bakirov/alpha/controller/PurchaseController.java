@@ -32,6 +32,17 @@ public class PurchaseController {
         }
     }
 
+    @PostMapping("{fiche}")
+    public ResponseEntity<?> getFiche(@RequestBody ResponseModel response, @PathVariable String fiche) {
+        try {
+            return ResponseEntity.ok(purchaseService.getfiche(response.getFirmno(), response.getPeriodno(), Integer.parseInt(fiche)));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/total")
     public ResponseEntity<?> purchasesTotal(@RequestBody ResponseTotal response) {
         try {
