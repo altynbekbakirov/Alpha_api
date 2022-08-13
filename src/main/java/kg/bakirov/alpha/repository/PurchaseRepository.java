@@ -102,7 +102,7 @@ public class PurchaseRepository {
                     "STRNS.PRICE AS price, STRNS.TOTAL AS total, (STRNS.PRICE / STRNS.REPORTRATE) AS priceusd, " +
                     "(STRNS.AMOUNT * (STRNS.PRICE / STRNS.REPORTRATE)) AS totalusd " +
                     " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
-                    " WHERE (STRNS.TRCODE in (1,2,3,13,14,25,50)) AND " +
+                    " WHERE (STRNS.TRCODE in (1,2,3,13,14,25,50)) AND STRNS.LINETYPE = 0 AND " +
                     "(STRNS.INVOICEREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = " + fiche + ")) " +
                     "ORDER BY STRNS.INVOICEREF, STRNS.INVOICELNNO ";
 

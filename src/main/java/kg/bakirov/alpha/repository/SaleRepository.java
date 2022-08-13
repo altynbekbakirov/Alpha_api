@@ -108,7 +108,7 @@ public class SaleRepository {
                     "STRNS.PRICE AS price, STRNS.TOTAL AS total, (STRNS.PRICE / STRNS.REPORTRATE) AS priceusd, " +
                     "(STRNS.AMOUNT * (STRNS.PRICE / STRNS.REPORTRATE)) AS totalusd " +
                     " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
-                    " WHERE (STRNS.TRCODE in (6,7,8,11,12,25,51)) AND " +
+                    " WHERE (STRNS.TRCODE in (6,7,8,11,12,25,51)) AND STRNS.LINETYPE = 0 AND " +
                     "(STRNS.INVOICEREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = " + fiche + ")) " +
                     "ORDER BY STRNS.INVOICEREF, STRNS.INVOICELNNO ";
 
@@ -712,8 +712,8 @@ public class SaleRepository {
             saleClients.clear();
             saleClients.addAll(map.values());
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return saleClients;
     }

@@ -2,11 +2,11 @@ package kg.bakirov.alpha.model.sales;
 
 public class SaleDaily {
     private String date;
+    private double net;
+    private double net_usd;
+    private double ret_total;
+    private double ret_total_usd;
     private int trCode;
-    private Double net;
-    private Double net_usd;
-    private Double ret_total;
-    private Double ret_total_usd;
 
     public String getDate() {
         return date;
