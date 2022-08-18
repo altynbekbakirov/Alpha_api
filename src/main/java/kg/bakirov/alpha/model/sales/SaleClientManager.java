@@ -1,6 +1,6 @@
 package kg.bakirov.alpha.model.sales;
 
-public class SaleClientManager {
+public class SaleClientManager implements Comparable<SaleClientManager> {
     private String clientCode;
     private String clientName;
     private Double itemAmount;
@@ -86,5 +86,10 @@ public class SaleClientManager {
 
     public void setItemTotalUsd(Double itemTotalUsd) {
         this.itemTotalUsd = itemTotalUsd;
+    }
+
+    @Override
+    public int compareTo(SaleClientManager o) {
+        return this.getClientCode().compareTo(o.getClientCode());
     }
 }

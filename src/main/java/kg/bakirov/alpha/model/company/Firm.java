@@ -6,10 +6,7 @@ public class Firm {
     private String NAME;
     private String TITLE;
 
-    public Firm(int NR, String NAME, String TITLE) {
-        this.NR = NR;
-        this.NAME = NAME;
-        this.TITLE = TITLE;
+    public Firm() {
     }
 
     public int getNR() {

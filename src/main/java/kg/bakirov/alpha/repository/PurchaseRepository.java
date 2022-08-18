@@ -6,12 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -32,7 +30,7 @@ public class PurchaseRepository {
     public List<PurchaseFiches> getPurchases(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<PurchaseFiches> purchasesFicheList = null;
+        List<PurchaseFiches> purchasesFicheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -53,14 +51,15 @@ public class PurchaseRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (1, 6)) AND (STFIC.SOURCEINDEX = " + sourceindex + ") " +
-                    "AND ((STFIC.DATE_>=" + "'" + begdate + "') AND (STFIC.DATE_<=" + "'" + enddate + "')) " +
+                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (1, 6)) AND (STFIC.SOURCEINDEX = ?) " +
+                    "AND ((STFIC.DATE_>=?) AND (STFIC.DATE_<=?)) " +
                     "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            purchasesFicheList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setInt(1, sourceindex);
+            statement.setString(2, begdate);
+            statement.setString(3, enddate);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -80,8 +79,8 @@ public class PurchaseRepository {
                 );
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return purchasesFicheList;
     }
@@ -90,7 +89,7 @@ public class PurchaseRepository {
     public List<PurchaseFiche> getFiche(int firmno, int periodno, int fiche) {
 
         utility.CheckCompany(firmno, periodno);
-        List<PurchaseFiche> purchasesFicheList = null;
+        List<PurchaseFiche> purchasesFicheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -103,13 +102,13 @@ public class PurchaseRepository {
                     "(STRNS.AMOUNT * (STRNS.PRICE / STRNS.REPORTRATE)) AS totalusd " +
                     " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
                     " WHERE (STRNS.TRCODE in (1,2,3,13,14,25,50)) AND STRNS.LINETYPE = 0 AND " +
-                    "(STRNS.INVOICEREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = " + fiche + ")) " +
+                    "(STRNS.INVOICEREF = (SELECT LOGICALREF " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = ?)) " +
                     "ORDER BY STRNS.INVOICEREF, STRNS.INVOICELNNO ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            purchasesFicheList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setInt(1, fiche);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -128,8 +127,8 @@ public class PurchaseRepository {
                 );
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return purchasesFicheList;
     }
@@ -139,7 +138,7 @@ public class PurchaseRepository {
     public List<PurchaseTotal> getPurchasesTotal(int firmno, int periodno, String begdate, String enddate) {
 
         utility.CheckCompany(firmno, periodno);
-        List<PurchaseTotal> purchaseTotals = null;
+        List<PurchaseTotal> purchaseTotals = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -151,13 +150,13 @@ public class PurchaseRepository {
                     "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVTOT_I2) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS ON STITOTS.STOCKREF = ITEMS.LOGICALREF " +
                     "WHERE (STITOTS.INVENNO = -1) AND (STITOTS.PURAMNT <> 0) " +
-                    "AND (STITOTS.DATE_ >= '" + begdate + "' AND STITOTS.DATE_ <=  '" + enddate + "') " +
+                    "AND (STITOTS.DATE_ >= ? AND STITOTS.DATE_ <= ?) " +
                     "GROUP BY ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE ORDER BY ITEMS.CODE ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            purchaseTotals = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -176,19 +175,18 @@ public class PurchaseRepository {
                 );
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return purchaseTotals;
     }
 
 
     /* ------------------------------------------ Распределение закупок по месяцам ---------------------------------------------------- */
-
     public List<PurchaseMonth> getPurchasesMonth(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<PurchaseMonth> purchaseMonths = null;
+        List<PurchaseMonth> purchaseMonths = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -227,15 +225,19 @@ public class PurchaseRepository {
                     "WHERE (ITEMS.CARDTYPE) <> 22 AND (ITEMS.ACTIVE = 0) " +
                     "AND (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
                     "AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0)<>0) " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)<>0) " +
                     "Order BY code";
 
-                        Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            purchaseMonths = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            statement.setString(4, begdate);
+            statement.setString(5, enddate);
+            statement.setInt(6, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -262,8 +264,8 @@ public class PurchaseRepository {
                         )
                 );
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return purchaseMonths;
     }
@@ -271,11 +273,10 @@ public class PurchaseRepository {
 
 
     /* ------------------------------------------ Распределение закупок по контрагентам ---------------------------------------------------- */
-
     public List<PurchaseClient> getPurchasesClient(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<PurchaseClient> purchasesClientList = null;
+        List<PurchaseClient> purchasesClientList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -293,13 +294,15 @@ public class PurchaseRepository {
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (1,5,6,10,26,30,31,32,33,34) ) AND (STFIC.CANCELLED = 0) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND  (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND  (STRNS.SOURCEINDEX = ?) " +
                     "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, ITMSC.CODE, ITMSC.NAME, ITMSC.STGRPCODE, STRNS.TRCODE " +
                     "ORDER BY CLNTC.CODE, ITMSC.CODE ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            purchasesClientList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -328,8 +331,8 @@ public class PurchaseRepository {
                 }
                 purchasesClientList.add(client);
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return purchasesClientList;
     }

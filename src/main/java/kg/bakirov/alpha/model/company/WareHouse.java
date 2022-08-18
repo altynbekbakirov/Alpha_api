@@ -6,11 +6,7 @@ public class WareHouse {
     private int FIRMNR;
     private String name;
 
-    public WareHouse(int id, int NR, int FIRMNR, String name) {
-        this.id = id;
-        this.NR = NR;
-        this.FIRMNR = FIRMNR;
-        this.name = name;
+    public WareHouse() {
     }
 
     public int getId() {

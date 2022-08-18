@@ -8,12 +8,7 @@ public class Period {
     private String ENDDATE;
     private int ACTIVE;
 
-    public Period(int NR, int FIRMNR, String BEGDATE, String ENDDATE, int ACTIVE) {
-        this.NR = NR;
-        this.FIRMNR = FIRMNR;
-        this.BEGDATE = BEGDATE;
-        this.ENDDATE = ENDDATE;
-        this.ACTIVE = ACTIVE;
+    public Period() {
     }
 
     public int getNR() {

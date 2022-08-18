@@ -65,4 +65,26 @@ public class AccountController {
         }
     }
 
+    @PostMapping("/fiche")
+    public ResponseEntity<?> accountFiches(@RequestBody ResponseAccount response) {
+        try {
+            return ResponseEntity.ok(accountService.getAccountFiches(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/fiche/{code}")
+    public ResponseEntity<?> accountFiche(@RequestBody ResponseAccount response, @PathVariable int code) {
+        try {
+            return ResponseEntity.ok(accountService.getAccountFiche(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), code));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
 }

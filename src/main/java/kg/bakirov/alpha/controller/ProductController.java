@@ -109,8 +109,7 @@ public class ProductController {
                     response.getFirmno(),
                     response.getPeriodno(),
                     response.getBegdate(),
-                    response.getEnddate(),
-                    response.getSourceindex()));
+                    response.getEnddate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -125,8 +124,7 @@ public class ProductController {
                     response.getFirmno(),
                     response.getPeriodno(),
                     response.getBegdate(),
-                    response.getEnddate(),
-                    response.getSourceindex(), code));
+                    response.getEnddate(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

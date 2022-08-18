@@ -1,9 +1,7 @@
 package kg.bakirov.alpha.service;
 
 import kg.bakirov.alpha.exception.NotFoundException;
-import kg.bakirov.alpha.model.accounts.Account;
-import kg.bakirov.alpha.model.accounts.AccountDebit;
-import kg.bakirov.alpha.model.accounts.AccountExtract;
+import kg.bakirov.alpha.model.accounts.*;
 import kg.bakirov.alpha.repository.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,6 +38,18 @@ public class AccountService {
 
     public List<AccountExtract> getAccountExtract(int firmNo, int periodNo, String begdate, String enddate, String code) throws NotFoundException {
         List<AccountExtract> productList = accountRepository.getAccountExtract(firmNo, periodNo, begdate, enddate, code);
+        if (productList.size() == 0) throw new NotFoundException("No records");
+        return productList;
+    }
+
+    public List<AccountFiches> getAccountFiches(int firmNo, int periodNo, String begdate, String enddate) throws NotFoundException {
+        List<AccountFiches> productList = accountRepository.getAccountFiches(firmNo, periodNo, begdate, enddate);
+        if (productList.size() == 0) throw new NotFoundException("No records");
+        return productList;
+    }
+
+    public List<AccountFiche> getAccountFiche(int firmNo, int periodNo, String begdate, String enddate, int code) throws NotFoundException {
+        List<AccountFiche> productList = accountRepository.getAccountFiche(firmNo, periodNo, begdate, enddate, code);
         if (productList.size() == 0) throw new NotFoundException("No records");
         return productList;
     }

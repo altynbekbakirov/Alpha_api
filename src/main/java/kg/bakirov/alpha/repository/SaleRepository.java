@@ -7,13 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
+import java.util.stream.Collectors;
+
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -31,11 +31,10 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Список документов ---------------------------------------------------- */
-
     public List<SaleFiches> getSales(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleFiches> saleFiches = null;
+        List<SaleFiches> saleFiches = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -58,13 +57,15 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39)) AND (STFIC.SOURCEINDEX = " + sourceindex + ") " +
-                    "AND ((STFIC.DATE_>=" + "'" + begdate + "') AND (STFIC.DATE_<=" + "'" + enddate + "')) " +
+                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39)) AND (STFIC.SOURCEINDEX = ?) " +
+                    "AND ((STFIC.DATE_>=?) AND (STFIC.DATE_<=?)) " +
                     "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            saleFiches = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setInt(1, sourceindex);
+            statement.setString(2, begdate);
+            statement.setString(3, enddate);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
                 saleFiches.add(
@@ -92,11 +93,10 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Контента документа ---------------------------------------------------- */
-
     public List<SaleFiche> getFiche(int firmno, int periodno, int fiche) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleFiche> ficheList = null;
+        List<SaleFiche> ficheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -109,13 +109,12 @@ public class SaleRepository {
                     "(STRNS.AMOUNT * (STRNS.PRICE / STRNS.REPORTRATE)) AS totalusd " +
                     " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
                     " WHERE (STRNS.TRCODE in (6,7,8,11,12,25,51)) AND STRNS.LINETYPE = 0 AND " +
-                    "(STRNS.INVOICEREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = " + fiche + ")) " +
+                    "(STRNS.INVOICEREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = ?)) " +
                     "ORDER BY STRNS.INVOICEREF, STRNS.INVOICELNNO ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            ficheList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setInt(1, fiche);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -145,7 +144,7 @@ public class SaleRepository {
     public List<SaleTotal> getSalesTotal(int firmno, int periodno, String begdate, String enddate) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleTotal> saleTotals = null;
+        List<SaleTotal> saleTotals = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -157,12 +156,13 @@ public class SaleRepository {
                     "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVTOT_I2) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS ON STITOTS.STOCKREF = ITEMS.LOGICALREF " +
                     "WHERE (STITOTS.INVENNO = -1) AND (STITOTS.SALAMNT <> 0) " +
-                    "AND (STITOTS.DATE_ >= '" + begdate + "' AND STITOTS.DATE_ <=  '" + enddate + "') " +
+                    "AND (STITOTS.DATE_ >= ? AND STITOTS.DATE_ <=  ?) " +
                     "GROUP BY ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE ORDER BY ITEMS.CODE ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            saleTotals = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
                 saleTotals.add(
@@ -186,13 +186,11 @@ public class SaleRepository {
     }
 
 
-
     /* ------------------------------------------ Распределение продаж по месяцам ---------------------------------------------------- */
-
     public List<SaleMonth> getSalesMonth(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleMonth> saleMonths = null;
+        List<SaleMonth> saleMonths = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -231,14 +229,20 @@ public class SaleRepository {
                     "WHERE (ITEMS.CARDTYPE) <> 22 AND (ITEMS.ACTIVE = 0) " +
                     "AND (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
                     "AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
-                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0)<>0) " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
+                    "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE " +
+                    "WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)<>0) " +
                     "Order BY code";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            saleMonths = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            statement.setString(4, begdate);
+            statement.setString(5, enddate);
+            statement.setInt(6, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
                 saleMonths.add(
@@ -265,20 +269,18 @@ public class SaleRepository {
                 );
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return saleMonths;
     }
 
 
-
     /* ------------------------------------------ Распределение продаж по менеджерам ---------------------------------------------------- */
-
     public List<SaleClientManager> getSalesManager(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleClientManager> saleClientManagers = null;
+        List<SaleClientManager> saleClientManagers = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -292,7 +294,7 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STRNS.SOURCEINDEX IN (" + sourceindex + ")) AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) " +
+                    "WHERE (STRNS.SOURCEINDEX IN (?)) AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) " +
                     "AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
@@ -300,10 +302,12 @@ public class SaleRepository {
                     "GROUP BY CLNTC.PARENTCLREF, STRNS.TRCODE " +
                     "ORDER BY client_code ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setInt(1, sourceindex);
+            statement.setString(2, begdate);
+            statement.setString(3, enddate);
+            ResultSet resultSet = statement.executeQuery();
 
-            saleClientManagers = new ArrayList<>();
             String currentCode = null;
             double itemAmount = 0, itemTotal = 0, itemTotalUsd = 0, itemAmountRet = 0, itemTotalRet = 0, itemTotalUsdRet = 0;
             HashMap<String, SaleClientManager> map = new HashMap<>();
@@ -373,8 +377,10 @@ public class SaleRepository {
                 saleClientManagers.add(entry.getValue());
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            Collections.sort(saleClientManagers);
+
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return saleClientManagers;
     }
@@ -382,11 +388,10 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Распределение продаж по контрагентам ---------------------------------------------------- */
-
     public List<SaleClient> getSalesClient(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleClient> saleClients = null;
+        List<SaleClient> saleClients = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -404,13 +409,15 @@ public class SaleRepository {
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND  (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND  (STRNS.SOURCEINDEX = ?) " +
                     "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, ITMSC.CODE, ITMSC.NAME, ITMSC.STGRPCODE, STRNS.TRCODE " +
                     "ORDER BY CLNTC.CODE, ITMSC.CODE ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            saleClients = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -451,11 +458,10 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Сводная таблица продаж ---------------------------------------------------- */
-
     public List<SaleTable> getSalesTable(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleTable> saleTables = null;
+        List<SaleTable> saleTables = new ArrayList<>();
         Map<String, SaleTable> map_month = new HashMap<>();
 
         try (Connection connection = dataSource.getConnection()) {
@@ -471,15 +477,18 @@ public class SaleRepository {
                     "LEFT OUTER JOIN  LG_SLSMAN WITH(NOLOCK) ON (STRNS.SALESMANREF = LG_SLSMAN.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF = ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    " WHERE ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    " WHERE ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (INVFC.DEPARTMENT IN (0)) AND (INVFC.BRANCH IN (0)) AND (INVFC.FACTORYNR IN (0)) " +
                     "AND (INVFC.STATUS IN (0,1)) AND (NOT(INVFC.TRCODE IN(5, 10)) ) " +
                     "AND (INVFC.CANCELLED =  0 ) AND (INVFC.GRPCODE = 2) " +
                     "GROUP BY INVFC.DATE_, INVFC.TRCODE, STRNS.LINETYPE " +
                     "ORDER BY INVFC.DATE_, INVFC.TRCODE, STRNS.LINETYPE ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             saleTables = new ArrayList<>();
 
@@ -555,11 +564,10 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Подробный отчет продаж ---------------------------------------------------- */
-
     public List<SaleDetail> getSalesDetail(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<SaleDetail> saleDetails = null;
+        List<SaleDetail> saleDetails = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -570,7 +578,7 @@ public class SaleRepository {
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) " +
                     "AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) " +
                     "AND (STRNS.LPRODSTAT <> 2) AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.TRCODE IN (2,3)) AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)), 0),2) as iade, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) " +
@@ -580,14 +588,14 @@ public class SaleRepository {
                     "AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) " +
                     "AND ((STRNS.TRCODE IN (2,3)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 2)) AND STRNS.TRCODE IN (2,3))) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)),0),2) as iade_tutari_usd, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.OUTCOSTCURR*STRNS.UINFO2/STRNS.UINFO1*STRNS.AMOUNT) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) " +
                     "AND (STRNS.LPRODSTAT <> 2) AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND (STRNS.TRCODE IN (2,3)) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)  ), 0), 2) as iade_maliyeti_usd, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.AMOUNT*(STRNS.UINFO2/STRNS.UINFO1)) " +
@@ -595,7 +603,7 @@ public class SaleRepository {
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) " +
                     "AND (STRNS.LPRODSTAT <> 2) AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND ((STRNS.IOCODE IN (3,4))) " +
                     "AND ((STRNS.TRCODE IN (7,8)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 3)) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND STRNS.TRCODE IN (7,8)  )) AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)), 0), 2) as net_satis, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) \n" +
@@ -605,20 +613,37 @@ public class SaleRepository {
                     "AND (STRNS.REPORTRATE > 0.0" + GLOBAL_FIRM_NO + ") AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND ((STRNS.IOCODE IN (3,4))) " +
                     "AND ((STRNS.TRCODE IN (7,8)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 3)) AND STRNS.TRCODE IN (7,8)  )) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)), 0), 2) as satis_tutari_usd, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.OUTCOSTCURR*STRNS.UINFO2/STRNS.UINFO1*STRNS.AMOUNT) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND (STRNS.TRCODE IN (7,8)) AND (STRNS.CLIENTREF = CLNTC.LOGICALREF) " +
-                    "AND ((STRNS.DATE_>='" + begdate + "') AND (STRNS.DATE_<='" + enddate + "')) AND (STRNS.SOURCEINDEX = " + sourceindex + ")), 0), 2) as  satis_maliyeti_usd " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?)), 0), 2) as  satis_maliyeti_usd " +
 
                     "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS As ITEMS WHERE (CARDTYPE <> 22) ORDER BY CODE";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            saleDetails = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            statement.setString(4, begdate);
+            statement.setString(5, enddate);
+            statement.setInt(6, sourceindex);
+            statement.setString(7, begdate);
+            statement.setString(8, enddate);
+            statement.setInt(9, sourceindex);
+            statement.setString(10, begdate);
+            statement.setString(11, enddate);
+            statement.setInt(12, sourceindex);
+            statement.setString(13, begdate);
+            statement.setString(14, enddate);
+            statement.setInt(15, sourceindex);
+            statement.setString(16, begdate);
+            statement.setString(17, enddate);
+            statement.setInt(18, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -645,15 +670,14 @@ public class SaleRepository {
                 saleDetails.add(detail);
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return saleDetails;
     }
 
 
     /* ------------------------------------------ Ежедневные продажи ---------------------------------------------------- */
-
     public List<SaleDaily> getSalesDaily(int firmno, int periodno, String begDate, String endDate, int sourceIndex) {
 
         utility.CheckCompany(firmno, periodno);
@@ -668,13 +692,15 @@ public class SaleRepository {
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE LGMAIN  " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (LGMAIN.CLIENTREF  =  CLNTC.LOGICALREF) " +
                     "WHERE (LGMAIN.GRPCODE = 2) " +
-                    "AND ((LGMAIN.DATE_>='" + begDate + "') AND (LGMAIN.DATE_<='" + endDate + "')) " +
-                    "AND (LGMAIN.SOURCEINDEX=" + sourceIndex + ") " +
+                    "AND ((LGMAIN.DATE_>=?) AND (LGMAIN.DATE_<=?)) AND (LGMAIN.SOURCEINDEX=?) " +
                     "GROUP BY LGMAIN.DATE_, LGMAIN.TRCODE " +
                     "ORDER BY LGMAIN.DATE_ DESC";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
                 SaleDaily client = new SaleDaily();
@@ -692,7 +718,7 @@ public class SaleRepository {
 
             Map<String, SaleDaily> map = new TreeMap<>(Collections.reverseOrder());
 
-            for (SaleDaily saleDaily: saleClients) {
+            for (SaleDaily saleDaily : saleClients) {
                 if (map.containsKey(saleDaily.getDate())) {
                     SaleDaily daily = map.get(saleDaily.getDate());
                     double netTotal = (daily.getNet() == null ? 0.0 : daily.getNet()) + (saleDaily.getNet() == null ? 0.0 : saleDaily.getNet());

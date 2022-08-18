@@ -6,12 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -28,65 +26,96 @@ public class ProductRepository {
     }
 
     /* ------------------------------------------ Остаток товаров ---------------------------------------------------- */
-
     public List<Product> getProducts(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<Product> itemsList = null;
+        List<Product> itemsList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            /*String sqlQuery = "SELECT ITEMS.CODE as code, ITEMS.NAME as name, ITEMS.STGRPCODE AS groupcode, " +
-                    "GNSTITOT.TRANSFERRED + GNSTITOT.PURAMNT + GNSTITOT.ACTPRODIN AS puramount, " +
-                    "(GNSTITOT.AVGCURRVAL + GNSTITOT.PURCURR) AS purcurr, " +
-                    "GNSTITOT.SALAMNT AS salamount, GNSTITOT.SALCURR AS salcurr, " +
-                    "GNSTITOT.ONHAND as onhand, GNSTITOT.LASTTRDATE AS lasttrdate " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS LEFT JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST GNSTITOT " +
-                    "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST_I1) " +
-                    "ON (ITEMS.LOGICALREF = GNSTITOT.STOCKREF) WHERE (GNSTITOT.INVENNO = -1) ";*/
-            
             String sqlQuery = "Set DateFormat DMY SELECT Items.CODE as code, Items.NAME as name, Upper(Items.STGRPCODE) as groupcode, " +
 
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=1) and (CARDREF=Items.LOGICALREF))),0) AS purchaseprice, " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=2) and (CARDREF=Items.LOGICALREF))),0) AS saleprice, " +
+                    
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
                     "AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) AND ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) AS puramount, " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) AND ((SOURCEINDEX = ?) " +
+                    "AND (IOCODE IN (1,2)))),0) AS puramount, " +
+                    
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) " +
                     "AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) " +
-                    "AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) AS salamount," +
-                    "(ISNULL ((Select SUM(LINENET  / NULLIF(REPORTRATE, 0) ) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (7,8))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) " +"AND ((DATE_>='" + begdate + "') " +
-                    "AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) - " +
+                    "AND ((DATE_>=?) AND (DATE_<=?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0) AS salamount," +
+                    
+                    "(ISNULL ((Select SUM(LINENET  / NULLIF(REPORTRATE, 0) ) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE " +
+                    "WHERE ((TRCODE in (7,8))) AND (STOCKREF=Items.LOGICALREF) AND (CANCELLED=0) " + 
+                    "AND ((DATE_>=?) AND (DATE_<=?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (3))) AND (STOCKREF=Items.LOGICALREF) " +
                     "AND (CANCELLED=0) " +
-                    "AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0)) AS salcurr, " +
+                    "AND ((DATE_>=?) AND (DATE_<=?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0)) AS salcurr, " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0) AS onhand, " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0) AS onhand, " +
+                    
                     "(ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0))* " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0))* " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=1) and (CARDREF=Items.LOGICALREF))),0) as purchase_sum, " +
+                    
                     "(ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>=" + "'" + begdate + "') AND (DATE_<=" + "'" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>=" + "?) AND (DATE_<=" + "?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>=" + "'" + begdate + "') AND (DATE_<=" + "'" + enddate + "')) and ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0)) * " +
+                    "AND (CANCELLED=0) AND ((DATE_>=" + "?) AND (DATE_<=" + "?)) and ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)) * " +
                     "ISNULL ((Select Top 1 PRICE From LG_" + GLOBAL_FIRM_NO + "_PRCLIST Where ((PTYPE=2) and (CARDREF=Items.LOGICALREF))),0) as sale_sum " +
+                    
                     "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS As Items " +
                     "WHERE  (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
                     "AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>='" + begdate + "') AND (DATE_<='" + enddate + "')) and  ((SOURCEINDEX = " + sourceindex + ") AND (IOCODE IN (3,4)))),0)<>0) " +
+                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)<>0) " +
                     "Order BY code";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            statement.setString(4, begdate);
+            statement.setString(5, enddate);
+            statement.setInt(6, sourceindex);
+            statement.setString(7, begdate);
+            statement.setString(8, enddate);
+            statement.setInt(9, sourceindex);
+            statement.setString(10, begdate);
+            statement.setString(11, enddate);
+            statement.setInt(12, sourceindex);
+            statement.setString(13, begdate);
+            statement.setString(14, enddate);
+            statement.setInt(15, sourceindex);
+            statement.setString(16, begdate);
+            statement.setString(17, enddate);
+            statement.setInt(18, sourceindex);
+            statement.setString(19, begdate);
+            statement.setString(20, enddate);
+            statement.setInt(21, sourceindex);
+            statement.setString(22, begdate);
+            statement.setString(23, enddate);
+            statement.setInt(24, sourceindex);
+            statement.setString(25, begdate);
+            statement.setString(26, enddate);
+            statement.setInt(27, sourceindex);
+            statement.setString(28, begdate);
+            statement.setString(29, enddate);
+            statement.setInt(30, sourceindex);
+            statement.setString(31, begdate);
+            statement.setString(32, enddate);
+            statement.setInt(33, sourceindex);
+            statement.setString(34, begdate);
+            statement.setString(35, enddate);
+            statement.setInt(36, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
                 itemsList.add(
@@ -106,19 +135,18 @@ public class ProductRepository {
                 );
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return itemsList;
     }
 
 
     /* ---------------------------------------- Инвентарный отчет ------------------------------------------------ */
-
     public List<ProductInventory> getProductsInventory(int firmno, int periodno) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductInventory> itemsInventoryList = null;
+        List<ProductInventory> itemsInventoryList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -149,10 +177,8 @@ public class ProductRepository {
                     "AND STRNS.TRCODE IN (4, 6, 7, 8, 9, 11, 12, 20, 21, 22, 23, 24, 25, 35, 36, 37, 38, 39, 51)  ))), 0), 0) AS total " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS AS ITEMS WHERE (ITEMS.CARDTYPE <> 22) ORDER BY ITEMS.CODE";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsInventoryList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -172,8 +198,8 @@ public class ProductRepository {
                 }
                 itemsInventoryList.add(inventory);
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return itemsInventoryList;
     }
@@ -181,11 +207,10 @@ public class ProductRepository {
 
 
     /* ---------------------------------------- Список документов ------------------------------------------------ */
-
-    public List<ProductFiches> getProductFiche(int firmno, int periodno, String begdate, String enddate, int sourceindex ) {
+    public List<ProductFiches> getProductFiche(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductFiches> itemsFicheList = null;
+        List<ProductFiches> itemsFicheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -193,15 +218,16 @@ public class ProductRepository {
                     "SELECT LGMAIN.FICHENO AS ficheno, CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.TRCODE AS trcode, " +
                     "LGMAIN.REPORTNET AS net, LGMAIN.NETTOTAL AS nettotal, LGMAIN.REPORTRATE AS reportrate " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE LGMAIN " +
-                    "WHERE (LGMAIN.GRPCODE = 3) AND (LGMAIN.DATE_ >= '"+ begdate + "') " +
-                    "AND (LGMAIN.DATE_ <= '"+ enddate + "') AND (LGMAIN.SOURCEINDEX = " + sourceindex + ") " +
+                    "WHERE (LGMAIN.GRPCODE = 3) AND (LGMAIN.DATE_ >= ?) " +
+                    "AND (LGMAIN.DATE_ <= ?) AND (LGMAIN.SOURCEINDEX = ?) " +
                     "ORDER BY " +
                     "LGMAIN.GRPCODE, LGMAIN.DATE_, LGMAIN.FTIME, LGMAIN.IOCODE, LGMAIN.TRCODE, LGMAIN.LOGICALREF ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsFicheList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -217,19 +243,18 @@ public class ProductRepository {
                 );
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return itemsFicheList;
     }
 
 
     /* ---------------------------------------- Контент документа ------------------------------------------------ */
-
-    public List<ProductFiche> getFiche(int firmno, int periodno, int fiche ) {
+    public List<ProductFiche> getFiche(int firmno, int periodno) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductFiche> itemsFicheList = null;
+        List<ProductFiche> itemsFicheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -244,10 +269,8 @@ public class ProductRepository {
                     "WHERE (STRNS.STFICHEREF = 1) AND (STRNS.DETLINE = 0) " +
                     "ORDER BY STRNS.STFICHEREF, STRNS.STFICHELNNO ";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsFicheList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -265,19 +288,18 @@ public class ProductRepository {
                 );
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return itemsFicheList;
     }
 
 
     /* ---------------------------------------- Достаточность товаров ------------------------------------------------ */
-
     public List<ProductEnough> getProductEnough(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductEnough> itemsPriceList = null;
+        List<ProductEnough> itemsPriceList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -291,28 +313,25 @@ public class ProductRepository {
                     "_GNTOTST GNSTITOT WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST_I1) " +
                     "ON (GNSTITOT.STOCKREF = ITEMS.LOGICALREF) WHERE ((GNSTITOT.INVENNO = -1) AND (GNSTITOT.ONHAND > 0)) ORDER BY ITEMS.CODE";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsPriceList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
 
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return itemsPriceList;
     }
 
 
     /* ---------------------------------------- Прайс лист ------------------------------------------------ */
-
     public List<ProductPrice> getProductPrice(int firmno, int periodno) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductPrice> itemsPriceList = null;
+        List<ProductPrice> itemsPriceList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -326,10 +345,8 @@ public class ProductRepository {
                     "_GNTOTST GNSTITOT WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST_I1) " +
                     "ON (GNSTITOT.STOCKREF = ITEMS.LOGICALREF) WHERE ((GNSTITOT.INVENNO = -1) AND (GNSTITOT.ONHAND > 0)) ORDER BY ITEMS.CODE";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsPriceList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -345,19 +362,18 @@ public class ProductRepository {
                         )
                 );
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return itemsPriceList;
     }
 
 
     /* ---------------------------------------- Движения товаров ------------------------------------------------ */
-
     public List<ProductTransaction> getProductTransactions(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductTransaction> itemsPriceList = null;
+        List<ProductTransaction> itemsPriceList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -372,15 +388,15 @@ public class ProductRepository {
                     " WHERE (LGMAIN.LINETYPE IN (0, 1, 5, 6, 8, 9, 11)) AND (LGMAIN.STFICHEREF <> 0) " +
                     "AND (LGMAIN.STFICHEREF = STFIC.LOGICALREF) " +
                     "AND (((STFIC.GRPCODE = 1)) OR ((STFIC.GRPCODE = 2)) OR ((STFIC.GRPCODE = 3)) OR (STFIC.GRPCODE = 0)) " +
-                    "AND (LGMAIN.DATE_ >= '"+ begdate + "') AND (LGMAIN.DATE_ <= '" + enddate + "') " +
-                    "AND (LGMAIN.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND (LGMAIN.DATE_ >= ?) AND (LGMAIN.DATE_ <= ?) AND (LGMAIN.SOURCEINDEX = ?) " +
                     "ORDER BY " +
                     "LGMAIN.DATE_, LGMAIN.FTIME, LGMAIN.IOCODE, LGMAIN.SOURCEINDEX";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsPriceList = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -399,8 +415,8 @@ public class ProductRepository {
                         )
                 );
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return itemsPriceList;
     }
@@ -410,7 +426,7 @@ public class ProductRepository {
     public List<ProductTransaction> getProductTransaction(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductTransaction> itemsPriceList = null;
+        List<ProductTransaction> itemsPriceList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -425,16 +441,17 @@ public class ProductRepository {
                     " WHERE (LGMAIN.LINETYPE IN (0, 1, 5, 6, 8, 9, 11)) AND (LGMAIN.STFICHEREF <> 0) " +
                     "AND (LGMAIN.STFICHEREF = STFIC.LOGICALREF) " +
                     "AND (((STFIC.GRPCODE = 1)) OR ((STFIC.GRPCODE = 2)) OR ((STFIC.GRPCODE = 3)) OR (STFIC.GRPCODE = 0)) " +
-                    "AND (LGMAIN.DATE_ >= '"+ begdate + "') AND (LGMAIN.DATE_ <= '" + enddate + "') " +
-                    "AND (LGMAIN.SOURCEINDEX = " + sourceindex + ") " +
+                    "AND (LGMAIN.DATE_ >= ?) AND (LGMAIN.DATE_ <= ?) AND (LGMAIN.SOURCEINDEX = ?) " +
                     "AND (LGMAIN.STOCKREF = (SELECT TOP 1 LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE CODE = '" + code + "')) " +
                     "ORDER BY " +
                     "LGMAIN.DATE_, LGMAIN.FTIME, LGMAIN.IOCODE, LGMAIN.SOURCEINDEX";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
 
-            itemsPriceList = new ArrayList<>();
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -461,10 +478,10 @@ public class ProductRepository {
 
 
     /* ---------------------------------------- Цены всех товаров ------------------------------------------------ */
-    public List<ProductPrices> getProductsPrices(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<ProductPrices> getProductsPrices(int firmno, int periodno, String begdate, String enddate) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductPrices> itemsPrices = null;
+        List<ProductPrices> itemsPrices = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -477,14 +494,14 @@ public class ProductRepository {
                     "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
                     "WHERE (LGMAIN.ACTIVE = 0) AND (LGMAIN.MTRLTYPE = 0) " +
-                    "AND (LGMAIN.BEGDATE <= '"+ begdate + "') AND (LGMAIN.ENDDATE >= '" + enddate + "') " +
+                    "AND (LGMAIN.BEGDATE <= ?) AND (LGMAIN.ENDDATE >= ?) " +
                     "ORDER BY " +
                     "LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsPrices = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
@@ -507,13 +524,13 @@ public class ProductRepository {
         }
         return itemsPrices;
     }
-    
+
 
     /* ---------------------------------------- Цены товара ------------------------------------------------ */
-    public List<ProductPrices> getProductPrices(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
+    public List<ProductPrices> getProductPrices(int firmno, int periodno, String begdate, String enddate, String code) {
 
         utility.CheckCompany(firmno, periodno);
-        List<ProductPrices> itemsPrices = null;
+        List<ProductPrices> itemsPrices = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -525,15 +542,16 @@ public class ProductRepository {
                     "CONVERT(varchar, LGMAIN.ENDDATE, 23) AS enddate, LGMAIN.ACTIVE AS active " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
-                    "WHERE (LGMAIN.ACTIVE = 0) AND ( ITMSC.CODE = '" + code + "') AND (LGMAIN.MTRLTYPE = 0) " +
-                    "AND (LGMAIN.BEGDATE <= '"+ begdate + "') AND (LGMAIN.ENDDATE >= '" + enddate + "') " +
+                    "WHERE (LGMAIN.ACTIVE = 0) AND ( ITMSC.CODE = ?) AND (LGMAIN.MTRLTYPE = 0) " +
+                    "AND (LGMAIN.BEGDATE <= ?) AND (LGMAIN.ENDDATE >= ?) " +
                     "ORDER BY " +
                     "LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
 
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-
-            itemsPrices = new ArrayList<>();
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, code);
+            statement.setString(2, begdate);
+            statement.setString(3, enddate);
+            ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
 
