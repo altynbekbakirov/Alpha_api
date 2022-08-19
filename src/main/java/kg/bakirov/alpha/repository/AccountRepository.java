@@ -4,11 +4,9 @@ import kg.bakirov.alpha.helper.Utility;
 import kg.bakirov.alpha.model.accounts.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
-
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
