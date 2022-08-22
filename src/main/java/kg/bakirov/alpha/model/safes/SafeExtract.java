@@ -6,7 +6,6 @@ public class SafeExtract {
     private String title;
     private String definition;
     private int trCode;
-    private byte sign;
     private double net;
     private double netUsd;
     private byte hour;
@@ -53,14 +52,6 @@ public class SafeExtract {
 
     public void setTrCode(int trCode) {
         this.trCode = trCode;
-    }
-
-    public byte getSign() {
-        return sign;
-    }
-
-    public void setSign(byte sign) {
-        this.sign = sign;
     }
 
     public double getNet() {

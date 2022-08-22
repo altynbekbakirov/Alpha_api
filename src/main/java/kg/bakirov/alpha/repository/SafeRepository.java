@@ -3,15 +3,20 @@ package kg.bakirov.alpha.repository;
 import kg.bakirov.alpha.helper.Utility;
 import kg.bakirov.alpha.model.safes.Safe;
 import kg.bakirov.alpha.model.safes.SafeExtract;
+import kg.bakirov.alpha.model.safes.SafeResume;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -96,7 +101,6 @@ public class SafeRepository {
                 safe.setTitle(resultSet.getString("title"));
                 safe.setDefinition(resultSet.getString("definition"));
                 safe.setTrCode(resultSet.getByte("trcode"));
-                safe.setSign(resultSet.getByte("sign"));
                 safe.setNet(resultSet.getDouble("net"));
                 safe.setNetUsd(resultSet.getDouble("netusd"));
                 safe.setHour(resultSet.getByte("hour"));
@@ -110,7 +114,8 @@ public class SafeRepository {
         return list;
     }
 
-    /* ------------------------------------------ Выписка всех касс ---------------------------------------------------- */
+
+    /* ------------------------------------------ Выписка одной кассы ---------------------------------------------------- */
     public List<SafeExtract> getSafeExtract(int firmno, int periodno, String begdate, String enddate, String code) {
 
         utility.CheckCompany(firmno, periodno);
@@ -125,7 +130,7 @@ public class SafeRepository {
                     "LGMAIN.REPORTNET AS netusd, LGMAIN.HOUR_ AS hour, LGMAIN.MINUTE_ AS minute " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_KSLINES LGMAIN " +
                     "WHERE (LGMAIN.DATE_ >= ? AND LGMAIN.DATE_ <= ?) " +
-                    "AND (LGMAIN.CARDREF = (SELECT LOGICALREF FROM LG_001_KSCARD WHERE CODE = ?))" +
+                    "AND (LGMAIN.CARDREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_KSCARD WHERE CODE = ?))" +
                     "ORDER BY LGMAIN.CARDREF, LGMAIN.DATE_, LGMAIN.HOUR_, LGMAIN.MINUTE_, LGMAIN.FICHENO";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -141,13 +146,91 @@ public class SafeRepository {
                 safe.setTitle(resultSet.getString("title"));
                 safe.setDefinition(resultSet.getString("definition"));
                 safe.setTrCode(resultSet.getByte("trcode"));
-                safe.setSign(resultSet.getByte("sign"));
                 safe.setNet(resultSet.getDouble("net"));
                 safe.setNetUsd(resultSet.getDouble("netusd"));
                 safe.setHour(resultSet.getByte("hour"));
                 safe.setMinute(resultSet.getByte("minute"));
                 list.add(safe);
             }
+
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return list;
+    }
+
+
+    /* ------------------------------------------ Реэюме кассового счета ---------------------------------------------------- */
+    public List<SafeResume> getSafeResume(int firmno, int periodno, String begdate, String enddate, String code) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<SafeResume> list = new ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "SET DATEFORMAT DMY " +
+                    "SELECT CASHTOT.TOTTYPE AS currency, CASHTOT.DAY_  AS day, " +
+                    "SUM(CASHTOT.DEBIT) AS debit, SUM(CASHTOT.CREDIT) AS credit, MONTH(CASHTOT.DATE_) AS month " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CSHTOTS CASHTOT " +
+                    "WHERE   (CASHTOT.TOTTYPE IN (1, 2)) AND (CASHTOT.DAY_ >= 0) " +
+                    "AND (CASHTOT.CARDREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_KSCARD WHERE CODE = ?)) " +
+                    "AND ((CASHTOT.DATE_ >= ?) AND (CASHTOT.DATE_ <= ?)) " +
+                    "GROUP BY CASHTOT.TOTTYPE, MONTH(CASHTOT.DATE_), CASHTOT.DAY_";
+
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, code);
+            statement.setString(2, begdate);
+            statement.setString(3, enddate);
+            ResultSet resultSet = statement.executeQuery();
+
+            Map<Integer, SafeResume> map = new HashMap<>();
+
+            while (resultSet.next()) {
+                // Com
+                if (resultSet.getInt("currency") == 1) {
+                    // Devirden gelen
+                    SafeResume resume = new SafeResume();
+                    resume.setMonth(resultSet.getInt("day") == 0 ? 0 : resultSet.getInt("month"));
+                    resume.setDebit(resultSet.getDouble("debit"));
+                    resume.setCredit(resultSet.getDouble("credit"));
+                    resume.setTotal(resultSet.getDouble("debit") - resultSet.getDouble("credit"));
+                    list.add(resume);
+                }
+                // Usd
+                else {
+                    SafeResume resume = new SafeResume();
+                    resume.setMonth(resultSet.getInt("day") == 0 ? 0 : resultSet.getInt("month"));
+                    resume.setDebitUsd(resultSet.getDouble("debit"));
+                    resume.setCreditUsd(resultSet.getDouble("credit"));
+                    resume.setTotalUsd(resultSet.getDouble("debit") - resultSet.getDouble("credit"));
+                    list.add(resume);
+                }
+            }
+
+//            Map<Integer, SafeResume> map = new HashMap<>();
+//            double total = 0;
+//            double totalUsd = 0;
+//            System.out.println(list.get(0));
+//            for (int i = 0; i < list.size(); i++) {
+//                total += list.get(i).getTotal();
+//                totalUsd += list.get(i).getTotalUsd();
+//                SafeResume resume;
+//                if (map.containsKey(list.get(i).getMonth())) {
+//                    resume = map.get(list.get(i).getMonth());
+//                    resume.setDebit(resume.getDebit() + list.get(i).getDebit());
+//                    resume.setCredit(resume.getCredit() + list.get(i).getCredit());
+//                    resume.setDebitUsd(resume.getDebitUsd() + list.get(i).getDebitUsd());
+//                    resume.setCreditUsd(resume.getCreditUsd() + list.get(i).getCreditUsd());
+//                } else {
+//                    resume = list.get(i);
+//                }
+//                resume.setTotal(total);
+//                resume.setTotalUsd(totalUsd);
+//                map.put(list.get(i).getMonth(), resume);
+//            }
+//            list.clear();
+//            list.addAll(map.values());
+//            System.out.println(map.get(0));
 
         } catch (SQLException throwable) {
             throwable.printStackTrace();

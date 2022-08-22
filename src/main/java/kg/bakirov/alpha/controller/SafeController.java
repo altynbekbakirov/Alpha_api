@@ -30,6 +30,17 @@ public class SafeController {
         }
     }
 
+    @PostMapping("/{code}")
+    public ResponseEntity<?> safeResume(@RequestBody ResponseSafe response, @PathVariable String code) {
+        try {
+            return ResponseEntity.ok(safeService.getSafeResume(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), code));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/extract")
     public ResponseEntity<?> safesExtracts(@RequestBody ResponseSafe response) {
         try {
