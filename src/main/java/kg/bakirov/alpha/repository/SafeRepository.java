@@ -101,8 +101,13 @@ public class SafeRepository {
                 safe.setTitle(resultSet.getString("title"));
                 safe.setDefinition(resultSet.getString("definition"));
                 safe.setTrCode(resultSet.getByte("trcode"));
-                safe.setNet(resultSet.getDouble("net"));
-                safe.setNetUsd(resultSet.getDouble("netusd"));
+                if (resultSet.getInt("sign") ==0 ) {
+                    safe.setCollection(resultSet.getDouble("net"));
+                    safe.setCollectionUsd(resultSet.getDouble("netUsd"));
+                } else {
+                    safe.setPayment(resultSet.getDouble("net"));
+                    safe.setPaymentUsd(resultSet.getDouble("netUsd"));
+                }
                 safe.setHour(resultSet.getByte("hour"));
                 safe.setMinute(resultSet.getByte("minute"));
                 list.add(safe);
@@ -146,8 +151,13 @@ public class SafeRepository {
                 safe.setTitle(resultSet.getString("title"));
                 safe.setDefinition(resultSet.getString("definition"));
                 safe.setTrCode(resultSet.getByte("trcode"));
-                safe.setNet(resultSet.getDouble("net"));
-                safe.setNetUsd(resultSet.getDouble("netusd"));
+                if (resultSet.getInt("sign") ==0 ) {
+                    safe.setCollection(resultSet.getDouble("net"));
+                    safe.setCollectionUsd(resultSet.getDouble("netUsd"));
+                } else {
+                    safe.setPayment(resultSet.getDouble("net"));
+                    safe.setPaymentUsd(resultSet.getDouble("netUsd"));
+                }
                 safe.setHour(resultSet.getByte("hour"));
                 safe.setMinute(resultSet.getByte("minute"));
                 list.add(safe);
@@ -184,54 +194,46 @@ public class SafeRepository {
             ResultSet resultSet = statement.executeQuery();
 
             Map<Integer, SafeResume> map = new HashMap<>();
+            double total = 0;
+            double totalUsd = 0;
 
             while (resultSet.next()) {
+                int currentMonth = resultSet.getInt("day") == 0 ? 0 : resultSet.getInt("month");
+
                 // Com
                 if (resultSet.getInt("currency") == 1) {
-                    // Devirden gelen
-                    SafeResume resume = new SafeResume();
-                    resume.setMonth(resultSet.getInt("day") == 0 ? 0 : resultSet.getInt("month"));
-                    resume.setDebit(resultSet.getDouble("debit"));
-                    resume.setCredit(resultSet.getDouble("credit"));
-                    resume.setTotal(resultSet.getDouble("debit") - resultSet.getDouble("credit"));
-                    list.add(resume);
+                    total += resultSet.getDouble("debit") - resultSet.getDouble("credit");
+                    if (map.containsKey(currentMonth)) {
+                        map.get(currentMonth).setDebit(map.get(currentMonth).getDebit() + resultSet.getDouble("debit"));
+                        map.get(currentMonth).setCredit(map.get(currentMonth).getCredit() + resultSet.getDouble("credit"));
+                        map.get(currentMonth).setTotal(total);
+                    } else {
+                        SafeResume resume = new SafeResume();
+                        resume.setMonth(currentMonth);
+                        resume.setDebit(resultSet.getDouble("debit"));
+                        resume.setCredit(resultSet.getDouble("credit"));
+                        resume.setTotal(total);
+                        map.put(currentMonth, resume);
+                    }
                 }
                 // Usd
                 else {
-                    SafeResume resume = new SafeResume();
-                    resume.setMonth(resultSet.getInt("day") == 0 ? 0 : resultSet.getInt("month"));
-                    resume.setDebitUsd(resultSet.getDouble("debit"));
-                    resume.setCreditUsd(resultSet.getDouble("credit"));
-                    resume.setTotalUsd(resultSet.getDouble("debit") - resultSet.getDouble("credit"));
-                    list.add(resume);
+                    totalUsd += resultSet.getDouble("debit") - resultSet.getDouble("credit");
+                    if (map.containsKey(currentMonth)) {
+                        map.get(currentMonth).setDebitUsd(map.get(currentMonth).getDebitUsd() + resultSet.getDouble("debit"));
+                        map.get(currentMonth).setCreditUsd(map.get(currentMonth).getCreditUsd() + resultSet.getDouble("credit"));
+                        map.get(currentMonth).setTotalUsd(totalUsd);
+                    } else {
+                        SafeResume resume = new SafeResume();
+                        resume.setMonth(currentMonth);
+                        resume.setDebitUsd(resultSet.getDouble("debit"));
+                        resume.setCreditUsd(resultSet.getDouble("credit"));
+                        resume.setTotalUsd(totalUsd);
+                        map.put(currentMonth, resume);
+                    }
                 }
             }
-
-//            Map<Integer, SafeResume> map = new HashMap<>();
-//            double total = 0;
-//            double totalUsd = 0;
-//            System.out.println(list.get(0));
-//            for (int i = 0; i < list.size(); i++) {
-//                total += list.get(i).getTotal();
-//                totalUsd += list.get(i).getTotalUsd();
-//                SafeResume resume;
-//                if (map.containsKey(list.get(i).getMonth())) {
-//                    resume = map.get(list.get(i).getMonth());
-//                    resume.setDebit(resume.getDebit() + list.get(i).getDebit());
-//                    resume.setCredit(resume.getCredit() + list.get(i).getCredit());
-//                    resume.setDebitUsd(resume.getDebitUsd() + list.get(i).getDebitUsd());
-//                    resume.setCreditUsd(resume.getCreditUsd() + list.get(i).getCreditUsd());
-//                } else {
-//                    resume = list.get(i);
-//                }
-//                resume.setTotal(total);
-//                resume.setTotalUsd(totalUsd);
-//                map.put(list.get(i).getMonth(), resume);
-//            }
-//            list.clear();
-//            list.addAll(map.values());
-//            System.out.println(map.get(0));
-
+            list.addAll(map.values());
         } catch (SQLException throwable) {
             throwable.printStackTrace();
         }

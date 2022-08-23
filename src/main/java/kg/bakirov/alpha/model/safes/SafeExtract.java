@@ -6,8 +6,10 @@ public class SafeExtract {
     private String title;
     private String definition;
     private int trCode;
-    private double net;
-    private double netUsd;
+    private double collection;
+    private double collectionUsd;
+    private double payment;
+    private double paymentUsd;
     private byte hour;
     private byte minute;
 
@@ -54,20 +56,36 @@ public class SafeExtract {
         this.trCode = trCode;
     }
 
-    public double getNet() {
-        return net;
+    public double getCollection() {
+        return collection;
     }
 
-    public void setNet(double net) {
-        this.net = net;
+    public void setCollection(double collection) {
+        this.collection = collection;
     }
 
-    public double getNetUsd() {
-        return netUsd;
+    public double getCollectionUsd() {
+        return collectionUsd;
     }
 
-    public void setNetUsd(double netUsd) {
-        this.netUsd = netUsd;
+    public void setCollectionUsd(double collectionUsd) {
+        this.collectionUsd = collectionUsd;
+    }
+
+    public double getPayment() {
+        return payment;
+    }
+
+    public void setPayment(double payment) {
+        this.payment = payment;
+    }
+
+    public double getPaymentUsd() {
+        return paymentUsd;
+    }
+
+    public void setPaymentUsd(double paymentUsd) {
+        this.paymentUsd = paymentUsd;
     }
 
     public byte getHour() {
