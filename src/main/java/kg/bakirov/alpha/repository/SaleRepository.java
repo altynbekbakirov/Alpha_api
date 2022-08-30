@@ -1,19 +1,15 @@
 package kg.bakirov.alpha.repository;
 
 import kg.bakirov.alpha.helper.Utility;
-import kg.bakirov.alpha.model.purchases.PurchaseFiche;
 import kg.bakirov.alpha.model.sales.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-
 import javax.sql.DataSource;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
-import java.util.stream.Collectors;
-
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -92,7 +88,7 @@ public class SaleRepository {
     }
 
 
-    /* ------------------------------------------ Контента документа ---------------------------------------------------- */
+    /* ------------------------------------------ Содержимое документа ---------------------------------------------------- */
     public List<SaleFiche> getFiche(int firmno, int periodno, int fiche) {
 
         utility.CheckCompany(firmno, periodno);
@@ -385,6 +381,116 @@ public class SaleRepository {
         return saleClientManagers;
     }
 
+    /* ------------------------------------------ Распределение продаж по менеджерам ---------------------------------------------------- */
+    public List<SaleClientManager> getSalesManagerOne(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<SaleClientManager> saleClientManagers = new ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "Set DateFormat DMY SELECT (SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_code, " +
+                    "(SELECT DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_name, " +
+                    "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
+                    "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS WITH(NOLOCK) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE STFIC WITH(NOLOCK) ON (STRNS.STFICHEREF  =  STFIC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (STFIC.CLIENTREF  =  CLNTC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
+                    "WHERE (STRNS.SOURCEINDEX IN (?)) AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) " +
+                    "AND (CLNTC.PARENTCLREF = (SELECT LOGICALREF FROM LG_001_CLCARD WHERE CODE = ?)) " +
+                    "AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
+                    "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
+                    "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
+                    "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
+                    "GROUP BY CLNTC.PARENTCLREF, STRNS.TRCODE " +
+                    "ORDER BY client_code ";
+
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setInt(1, sourceindex);
+            statement.setString(2, begdate);
+            statement.setString(3, enddate);
+            statement.setString(4, code);
+            ResultSet resultSet = statement.executeQuery();
+
+            String currentCode = null;
+            double itemAmount = 0, itemTotal = 0, itemTotalUsd = 0, itemAmountRet = 0, itemTotalRet = 0, itemTotalUsdRet = 0;
+            HashMap<String, SaleClientManager> map = new HashMap<>();
+
+            while (resultSet.next()) {
+                if (resultSet.getString("client_code") == null) {
+                    if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                        itemAmount += resultSet.getDouble("amount");
+                        itemTotal += resultSet.getDouble("total");
+                        itemTotalUsd += resultSet.getDouble("total_usd");
+                        itemAmountRet = 0.0;
+                        itemTotalRet = 0.0;
+                        itemTotalUsdRet = 0.0;
+                    } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                        itemAmount = 0.0;
+                        itemTotal = 0.0;
+                        itemTotalUsd = 0.0;
+                        itemAmountRet += -resultSet.getDouble("amount");
+                        itemTotalRet += -resultSet.getDouble("total");
+                        itemTotalUsdRet += -resultSet.getDouble("total_usd");
+                    }
+                } else {
+                    if (resultSet.getString("client_code").equals(currentCode)) {
+                        if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                            itemAmount += resultSet.getDouble("amount");
+                            itemTotal += resultSet.getDouble("total");
+                            itemTotalUsd += resultSet.getDouble("total_usd");
+                        } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                            itemAmountRet += -resultSet.getDouble("amount");
+                            itemTotalRet += -resultSet.getDouble("total");
+                            itemTotalUsdRet += -resultSet.getDouble("total_usd");
+                        }
+                    } else {
+                        if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                            itemAmount = resultSet.getDouble("amount");
+                            itemTotal = resultSet.getDouble("total");
+                            itemTotalUsd = resultSet.getDouble("total_usd");
+                            itemAmountRet = 0.0;
+                            itemTotalRet = 0.0;
+                            itemTotalUsdRet = 0.0;
+                        } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                            itemAmount = 0.0;
+                            itemTotal = 0.0;
+                            itemTotalUsd = 0.0;
+                            itemAmountRet = -resultSet.getDouble("amount");
+                            itemTotalRet = -resultSet.getDouble("total");
+                            itemTotalUsdRet = -resultSet.getDouble("total_usd");
+                        }
+                    }
+                }
+
+                SaleClientManager client = new SaleClientManager();
+                client.setClientCode(resultSet.getString("client_code") == null ? "others" : resultSet.getString("client_code"));
+                client.setClientName(resultSet.getString("client_name") == null ? "others" : resultSet.getString("client_name"));
+                client.setItemAmount(itemAmount);
+                client.setItemTotal(itemTotal);
+                client.setItemTotalUsd(itemTotalUsd);
+                client.setItemAmountRet(itemAmountRet);
+                client.setItemTotalRet(itemTotalRet);
+                client.setItemTotalUsdRet(itemTotalUsdRet);
+                currentCode = resultSet.getString("client_code");
+
+                map.put(resultSet.getString("client_code"), client);
+            }
+
+            for (Map.Entry<String, SaleClientManager> entry : map.entrySet()) {
+                saleClientManagers.add(entry.getValue());
+            }
+
+            Collections.sort(saleClientManagers);
+
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return saleClientManagers;
+    }
 
 
     /* ------------------------------------------ Распределение продаж по контрагентам ---------------------------------------------------- */
@@ -448,13 +554,98 @@ public class SaleRepository {
                 saleClients.add(client);
             }
 
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
         }
         return saleClients;
     }
 
 
+    /* ------------------------------------------ Топ продаж по контрагентам ---------------------------------------------------- */
+    public List<SaleClientTop> getSalesClientTop(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<SaleClientTop> saleClientTops = new ArrayList<>();
+        Map<String, SaleClientTop> map = new TreeMap<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "Set DateFormat DMY SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
+                    "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
+                    "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS WITH(NOLOCK) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE STFIC WITH(NOLOCK) ON (STRNS.STFICHEREF  =  STFIC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (STFIC.CLIENTREF  =  CLNTC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
+                    "WHERE (STRNS.SOURCEINDEX IN (0)) AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
+                    "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
+                    "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
+                    "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
+                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND  (STRNS.SOURCEINDEX = ?) " +
+                    "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, STRNS.TRCODE " +
+                    "ORDER BY CLNTC.CODE ";
+
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                    if (map.containsKey(resultSet.getString("client_code"))) {
+                        SaleClientTop saleClientTop = map.get(resultSet.getString("client_code"));
+                        double amount = saleClientTop.getItemAmount() + resultSet.getDouble("amount");
+                        double total = saleClientTop.getItemTotal() + resultSet.getDouble("total");
+                        double totalUsd = saleClientTop.getItemTotalUsd() + resultSet.getDouble("total_usd");
+                        saleClientTop.setItemAmount(amount);
+                        saleClientTop.setItemTotal(total);
+                        saleClientTop.setItemTotalUsd(totalUsd);
+                        map.put(resultSet.getString("client_code"), saleClientTop);
+                    } else {
+                        SaleClientTop client = new SaleClientTop();
+                        client.setClientCode(resultSet.getString("client_code"));
+                        client.setClientName(resultSet.getString("client_name"));
+                        client.setItemAmount(resultSet.getDouble("amount"));
+                        client.setItemTotal(resultSet.getDouble("total"));
+                        client.setItemTotalUsd(resultSet.getDouble("total_usd"));
+                        client.setItemAmountRet(0.0);
+                        client.setItemTotalRet(0.0);
+                        client.setItemTotalUsdRet(0.0);
+                        map.put(resultSet.getString("client_code"), client);
+                    }
+                } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                    if (map.containsKey(resultSet.getString("client_code"))) {
+                        SaleClientTop clientTop = map.get(resultSet.getString("client_code"));
+                        double amount = clientTop.getItemAmountRet() + resultSet.getDouble("amount");
+                        double total = clientTop.getItemTotalRet() + resultSet.getDouble("total");
+                        double totalUsd = clientTop.getItemTotalUsdRet() + resultSet.getDouble("total_usd");
+                        clientTop.setItemAmountRet(amount);
+                        clientTop.setItemTotalRet(total);
+                        clientTop.setItemTotalUsdRet(totalUsd);
+                        map.put(resultSet.getString("client_code"), clientTop);
+                    } else {
+                        SaleClientTop client = new SaleClientTop();
+                        client.setClientCode(resultSet.getString("client_code"));
+                        client.setClientName(resultSet.getString("client_name"));
+                        client.setItemAmount(0.0);
+                        client.setItemTotal(0.0);
+                        client.setItemTotalUsd(0.0);
+                        client.setItemAmountRet(resultSet.getDouble("amount"));
+                        client.setItemTotalRet(resultSet.getDouble("total"));
+                        client.setItemTotalUsdRet(resultSet.getDouble("total_usd"));
+                        map.put(resultSet.getString("client_code"), client);
+                    }
+                }
+            }
+            saleClientTops.addAll(map.values());
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return saleClientTops;
+    }
 
 
     /* ------------------------------------------ Сводная таблица продаж ---------------------------------------------------- */
@@ -560,7 +751,6 @@ public class SaleRepository {
         }
         return saleTables;
     }
-
 
 
     /* ------------------------------------------ Подробный отчет продаж ---------------------------------------------------- */
