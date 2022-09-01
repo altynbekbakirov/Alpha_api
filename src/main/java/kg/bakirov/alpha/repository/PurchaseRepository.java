@@ -26,7 +26,6 @@ public class PurchaseRepository {
     }
 
     /* ------------------------------------------ Список документов ---------------------------------------------------- */
-
     public List<PurchaseFiches> getPurchases(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
 
         utility.CheckCompany(firmno, periodno);
@@ -34,7 +33,7 @@ public class PurchaseRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT STFIC.TRCODE trcode, " +
+            String sqlQuery = "Set DateFormat DMY SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE trcode, " +
                     "STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
                     "ISNULL(CLNTC.CODE, 0) as clientcode, ISNULL(CLNTC.DEFINITION_, 0) as clientname, " +
                     "ROUND(CASE STFIC.TRCODE WHEN 6 THEN -STFIC.GROSSTOTAL ELSE STFIC.GROSSTOTAL END, 2) AS gross, " +
@@ -65,6 +64,7 @@ public class PurchaseRepository {
 
                 purchasesFicheList.add(
                         new PurchaseFiches(
+                                resultSet.getLong("id"),
                                 resultSet.getInt("trcode"),
                                 resultSet.getString("ficheno"),
                                 resultSet.getString("date"),
@@ -100,10 +100,8 @@ public class PurchaseRepository {
                     "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_UNITSETL WHERE LOGICALREF = STRNS.UOMREF) AS unit, " +
                     "STRNS.PRICE AS price, STRNS.TOTAL AS total, (STRNS.PRICE / STRNS.REPORTRATE) AS priceusd, " +
                     "(STRNS.AMOUNT * (STRNS.PRICE / STRNS.REPORTRATE)) AS totalusd " +
-                    " FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
-                    " WHERE (STRNS.TRCODE in (1,2,3,13,14,25,50)) AND STRNS.LINETYPE = 0 AND " +
-                    "(STRNS.INVOICEREF = (SELECT LOGICALREF " +
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE WHERE FICHENO = ?)) " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
+                    "WHERE (STRNS.TRCODE in (1,2,3,13,14,25,50)) AND STRNS.LINETYPE = 0 AND (STRNS.STFICHEREF = ?) " +
                     "ORDER BY STRNS.INVOICEREF, STRNS.INVOICELNNO ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);

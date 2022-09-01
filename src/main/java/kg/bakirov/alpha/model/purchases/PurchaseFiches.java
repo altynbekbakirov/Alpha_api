@@ -2,6 +2,7 @@ package kg.bakirov.alpha.model.purchases;
 
 public class PurchaseFiches {
 
+    private Long id;
     private int trCode;
     private String ficheNo;
     private String date;
@@ -13,7 +14,8 @@ public class PurchaseFiches {
     private Double net;
     private Double netUsd;
 
-    public PurchaseFiches(int trCode, String ficheNo, String date, String clientCode, String clientName, Double gross, Double discounts, Double expenses, Double net, Double netUsd) {
+    public PurchaseFiches(Long id, int trCode, String ficheNo, String date, String clientCode, String clientName, Double gross, Double discounts, Double expenses, Double net, Double netUsd) {
+        this.id = id;
         this.trCode = trCode;
         this.ficheNo = ficheNo;
         this.date = date;
@@ -24,6 +26,14 @@ public class PurchaseFiches {
         this.expenses = expenses;
         this.net = net;
         this.netUsd = netUsd;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public int getTrCode() {
