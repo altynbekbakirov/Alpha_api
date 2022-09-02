@@ -47,4 +47,10 @@ public class PurchaseService {
         if (clients.size() == 0) throw new NotFoundException("No records");
         return clients;
     }
+
+    public List<PurchaseClientFiches> getPurchasesClientFiches(int firmNo, int periodNo, String begDate, String endDate, int sourceindex, String code) throws NotFoundException {
+        List<PurchaseClientFiches> clients = purchaseRepository.getPurchasesClientFiches(firmNo, periodNo, begDate, endDate, sourceindex, code);
+        if (clients.size() == 0) throw new NotFoundException("No records");
+        return clients;
+    }
 }

@@ -6,10 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import javax.sql.DataSource;
 import java.sql.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Date;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -100,12 +97,12 @@ public class SaleRepository {
             String sqlQuery = "SELECT " +
                     "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE LOGICALREF = STRNS.STOCKREF) AS code, " +
                     "(SELECT NAME FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS WHERE LOGICALREF = STRNS.STOCKREF) AS name, " +
-                    "STRNS.DATE_ AS date, STRNS.AMOUNT AS count, " +
+                    "CONVERT(varchar, STRNS.DATE_, 23) AS date, STRNS.AMOUNT AS count, " +
                     "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_UNITSETL WHERE LOGICALREF = STRNS.UOMREF) AS unit, " +
                     "STRNS.PRICE AS price, STRNS.TOTAL AS total, (STRNS.PRICE / STRNS.REPORTRATE) AS priceusd, " +
                     "(STRNS.AMOUNT * (STRNS.PRICE / STRNS.REPORTRATE)) AS totalusd " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
-                    "WHERE (STRNS.TRCODE in (6,7,8,11,12,25,51)) AND STRNS.LINETYPE = 0 AND (STRNS.STFICHEREF = ?) " +
+                    "WHERE (STRNS.TRCODE in (2,3,7,8)) AND STRNS.LINETYPE = 0 AND (STRNS.STFICHEREF = ?) " +
                     "ORDER BY STRNS.INVOICEREF, STRNS.INVOICELNNO ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -381,7 +378,7 @@ public class SaleRepository {
         return saleClientManagers;
     }
 
-    /* ------------------------------------------ Распределение продаж по менеджерам ---------------------------------------------------- */
+    /* ------------------------------------------ Распределение продаж по одному менеджеру ---------------------------------------------------- */
     public List<SaleClientManager> getSalesManagerOne(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
 
         utility.CheckCompany(firmno, periodno);
@@ -400,7 +397,7 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
                     "WHERE (STRNS.SOURCEINDEX IN (?)) AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) " +
-                    "AND (CLNTC.PARENTCLREF = (SELECT LOGICALREF FROM LG_001_CLCARD WHERE CODE = ?)) " +
+                    "AND (CLNTC.PARENTCLREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE CODE = ?)) " +
                     "AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
@@ -498,6 +495,7 @@ public class SaleRepository {
 
         utility.CheckCompany(firmno, periodno);
         List<SaleClient> saleClients = new ArrayList<>();
+        Map<String, SaleClient> map = new TreeMap<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
@@ -525,33 +523,110 @@ public class SaleRepository {
             statement.setInt(3, sourceindex);
             ResultSet resultSet = statement.executeQuery();
 
+            double count, countRet, total, totalUsd, totalRet, totalRetUsd;
+
             while (resultSet.next()) {
+                if (map.containsKey(resultSet.getString("client_code"))) {
+                    SaleClient client = map.get(resultSet.getString("client_code"));
+                    if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                        count = client.getItemAmount() + resultSet.getDouble("amount");
+                        total = client.getItemTotal() + resultSet.getDouble("total");
+                        totalUsd = client.getItemTotalUsd() + resultSet.getDouble("total_usd");
+                        client.setItemAmount(count);
+                        client.setItemTotal(total);
+                        client.setItemTotalUsd(totalUsd);
+                    } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                        countRet = client.getItemAmountRet() + resultSet.getDouble("amount");
+                        totalRet = client.getItemTotalRet() + resultSet.getDouble("total");
+                        totalRetUsd = client.getItemTotalUsdRet() + resultSet.getDouble("total_usd");
+                        client.setItemAmountRet(countRet);
+                        client.setItemTotalRet(totalRet);
+                        client.setItemTotalUsdRet(totalRetUsd);
+                    }
+                    map.put(resultSet.getString("client_code"), client);
+                } else {
+                    SaleClient client = new SaleClient();
+                    client.setClientCode(resultSet.getString("client_code"));
+                    client.setClientName(resultSet.getString("client_name"));
 
-                SaleClient client = new SaleClient();
-
-                client.setClientCode(resultSet.getString("client_code"));
-                client.setClientName(resultSet.getString("client_name"));
-                client.setItemCode(resultSet.getString("item_code"));
-                client.setItemName(resultSet.getString("item_name"));
-                client.setItemGroup(resultSet.getString("item_group"));
-
-                if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
-                    client.setItemAmount(resultSet.getDouble("amount"));
-                    client.setItemTotal(resultSet.getDouble("total"));
-                    client.setItemTotalUsd(resultSet.getDouble("total_usd"));
-                    client.setItemAmountRet(0.0);
-                    client.setItemTotalRet(0.0);
-                    client.setItemTotalUsdRet(0.0);
-                } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
-                    client.setItemAmount(0.0);
-                    client.setItemTotal(0.0);
-                    client.setItemTotalUsd(0.0);
-                    client.setItemAmountRet(-resultSet.getDouble("amount"));
-                    client.setItemTotalRet(-resultSet.getDouble("total"));
-                    client.setItemTotalUsdRet(-resultSet.getDouble("total_usd"));
+                    if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                        client.setItemAmount(resultSet.getDouble("amount"));
+                        client.setItemTotal(resultSet.getDouble("total"));
+                        client.setItemTotalUsd(resultSet.getDouble("total_usd"));
+                        client.setItemAmountRet(0.0);
+                        client.setItemTotalRet(0.0);
+                        client.setItemTotalUsdRet(0.0);
+                    } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                        client.setItemAmount(0.0);
+                        client.setItemTotal(0.0);
+                        client.setItemTotalUsd(0.0);
+                        client.setItemAmountRet(resultSet.getDouble("amount"));
+                        client.setItemTotalRet(resultSet.getDouble("total"));
+                        client.setItemTotalUsdRet(resultSet.getDouble("total_usd"));
+                    }
+                    map.put(resultSet.getString("client_code"), client);
                 }
+            }
+            saleClients.addAll(map.values());
 
-                saleClients.add(client);
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return saleClients;
+    }
+
+
+    /* ------------------------------------------ Перечень документов по контрагентам ---------------------------------------------------- */
+    public List<SaleClientFiches> getSalesClientFiches(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<SaleClientFiches> saleClients = new ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "Set DateFormat DMY " +
+                    "SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE  trcode, " +
+                    "    STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
+                    "    ISNULL(CLNTC.CODE, 0) as clientcode, ISNULL(CLNTC.DEFINITION_, 0) as clientname, " +
+                    "    STFIC.GROSSTOTAL AS gross, STFIC.TOTALDISCOUNTS AS discounts, STFIC.TOTALEXPENSES AS expenses, " +
+                    "    STFIC.NETTOTAL AS net, STFIC.REPORTNET AS net_usd " +
+                    "    FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE STFIC WITH(NOLOCK) " +
+                    "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC WITH(NOLOCK) ON (STFIC.INVOICEREF = INVFC.LOGICALREF) " +
+                    "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (STFIC.CLIENTREF = CLNTC.LOGICALREF) " +
+                    "    LEFT OUTER JOIN LG_SLSMAN SLSMC WITH(NOLOCK) ON (STFIC.SALESMANREF = SLSMC.LOGICALREF) " +
+                    "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PAYPLANS PAYPL WITH(NOLOCK) ON (STFIC.PAYDEFREF = PAYPL.LOGICALREF) " +
+                    "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT sWSp WITH(NOLOCK) ON (STFIC.SOURCEWSREF = sWSp.LOGICALREF) " +
+                    "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
+                    "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
+                    "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
+                    "    WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39)) " +
+                    "    AND ((STFIC.DATE_>=?) AND (STFIC.DATE_<=?)) AND (STFIC.SOURCEINDEX = ?) " +
+                    "    AND (CLNTC.CODE = ?) " +
+                    "    ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
+
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begdate);
+            statement.setString(2, enddate);
+            statement.setInt(3, sourceindex);
+            statement.setString(4, code);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                saleClients.add(
+                        new SaleClientFiches(
+                                resultSet.getLong("id"),
+                                resultSet.getInt("trcode"),
+                                resultSet.getString("ficheno"),
+                                resultSet.getString("date"),
+                                resultSet.getString("clientcode"),
+                                resultSet.getString("clientname"),
+                                resultSet.getDouble("gross"),
+                                resultSet.getDouble("discounts"),
+                                resultSet.getDouble("expenses"),
+                                resultSet.getDouble("net"),
+                                resultSet.getDouble("net_usd")
+                        )
+                );
             }
 
         } catch (SQLException throwable) {
@@ -653,11 +728,11 @@ public class SaleRepository {
 
         utility.CheckCompany(firmno, periodno);
         List<SaleTable> saleTables = new ArrayList<>();
-        Map<String, SaleTable> map_month = new HashMap<>();
+        Map<Integer, SaleTable> map_month = new HashMap<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = " Set DateFormat DMY SELECT INVFC.DATE_ AS date, INVFC.TRCODE, STRNS.LINETYPE, " +
+            String sqlQuery = " Set DateFormat DMY SELECT MONTH(INVFC.DATE_) AS date, INVFC.TRCODE, STRNS.LINETYPE, " +
                     "SUM(ROUND(ISNULL(STRNS.TOTAL, 0) , 2)) AS total, " +
                     "SUM(ROUND(ISNULL(STRNS.LINENET, 0) ,2)) AS net, " +
                     "SUM(ROUND(ISNULL(STRNS.TOTAL / NULLIF(STRNS.REPORTRATE, 0), 0), 2)) AS total_usd, " +
@@ -681,8 +756,6 @@ public class SaleRepository {
             statement.setInt(3, sourceindex);
             ResultSet resultSet = statement.executeQuery();
 
-            saleTables = new ArrayList<>();
-
             double total = 0;
             double net = 0;
             double expenses = 0;
@@ -693,14 +766,7 @@ public class SaleRepository {
             int currentMonth = 0;
 
             while (resultSet.next()) {
-
-                String date = resultSet.getString("date");
-                Date date1 = new SimpleDateFormat("yyyy-MM-dd").parse(date);
-
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTime(date1);
-
-                int month = calendar.get(Calendar.MONTH) + 1;
+                int month = resultSet.getInt("date");
                 SaleTable saleTable = new SaleTable();
 
                 if (month != currentMonth) {
@@ -728,7 +794,7 @@ public class SaleRepository {
                     discounts = discounts + resultSet.getDouble("total");
                 }
 
-                saleTable.setDate(String.valueOf(month));
+                saleTable.setDate(month);
                 saleTable.setTotal(total - ret);
                 saleTable.setDiscounts(discounts);
                 saleTable.setExpenses(expenses);
@@ -737,16 +803,12 @@ public class SaleRepository {
                 saleTable.setRet_total(ret);
                 saleTable.setRet_total_usd(ret_usd);
                 currentMonth = month;
-                map_month.put(String.valueOf(saleTable.getDate()), saleTable);
+                map_month.put(saleTable.getDate(), saleTable);
             }
 
-            Map<String, SaleTable> sortTable = new TreeMap<>(map_month);
+            saleTables = new ArrayList<>(map_month.values());
 
-            for (Map.Entry<String, SaleTable> entry : sortTable.entrySet()) {
-                saleTables.add(entry.getValue());
-            }
-
-        } catch (SQLException | ParseException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return saleTables;

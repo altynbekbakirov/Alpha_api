@@ -5,8 +5,7 @@ import lombok.Data;
 
 @AllArgsConstructor
 @Data
-public class PurchaseFiches {
-
+public class PurchaseClientFiches {
     private Long id;
     private int trCode;
     private String ficheNo;
@@ -18,5 +17,4 @@ public class PurchaseFiches {
     private Double expenses;
     private Double net;
     private Double netUsd;
-
 }

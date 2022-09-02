@@ -56,18 +56,7 @@ public class ProductController {
     @PostMapping("/fiche/{fiche}")
     public ResponseEntity<?> productFiche(@RequestBody ResponseModel response, @PathVariable String fiche) {
         try {
-            return ResponseEntity.ok(productService.getFiche(response.getFirmno(), response.getPeriodno(), Integer.parseInt(fiche)));
-        } catch (NotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
-
-    @PostMapping("/price")
-    public ResponseEntity<?> productsPrice(@RequestBody ResponseModel response) {
-        try {
-            return ResponseEntity.ok(productService.getProductsPrice(response.getFirmno(), response.getPeriodno()));
+            return ResponseEntity.ok(productService.getFiche(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), Integer.parseInt(fiche)));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -95,6 +84,17 @@ public class ProductController {
                     response.getBegdate(),
                     response.getEnddate(),
                     response.getSourceindex(), code));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/price")
+    public ResponseEntity<?> productsPrice(@RequestBody ResponseModel response) {
+        try {
+            return ResponseEntity.ok(productService.getProductsPrice(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

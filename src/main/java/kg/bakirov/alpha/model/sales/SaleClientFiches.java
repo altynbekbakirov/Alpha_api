@@ -1,12 +1,12 @@
-package kg.bakirov.alpha.model.purchases;
+package kg.bakirov.alpha.model.sales;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @Data
-public class PurchaseFiches {
-
+public class SaleClientFiches {
     private Long id;
     private int trCode;
     private String ficheNo;
@@ -18,5 +18,4 @@ public class PurchaseFiches {
     private Double expenses;
     private Double net;
     private Double netUsd;
-
 }

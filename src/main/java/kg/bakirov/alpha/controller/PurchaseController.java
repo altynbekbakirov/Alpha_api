@@ -75,4 +75,15 @@ public class PurchaseController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    @PostMapping("/client/{code}")
+    public ResponseEntity<?> purchasesClientFiches(@RequestBody ResponseModel response, @PathVariable String code) {
+        try {
+            return ResponseEntity.ok(purchaseService.getPurchasesClientFiches(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex(), code));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

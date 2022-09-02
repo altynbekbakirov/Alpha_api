@@ -1,5 +1,10 @@
 package kg.bakirov.alpha.model.company;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
+@Data
 public class Period {
 
     private int NR;
@@ -7,47 +12,4 @@ public class Period {
     private String BEGDATE;
     private String ENDDATE;
     private int ACTIVE;
-
-    public Period() {
-    }
-
-    public int getNR() {
-        return NR;
-    }
-
-    public void setNR(int NR) {
-        this.NR = NR;
-    }
-
-    public int getFIRMNR() {
-        return FIRMNR;
-    }
-
-    public void setFIRMNR(int FIRMNR) {
-        this.FIRMNR = FIRMNR;
-    }
-
-    public String getBEGDATE() {
-        return BEGDATE;
-    }
-
-    public void setBEGDATE(String BEGDATE) {
-        this.BEGDATE = BEGDATE;
-    }
-
-    public String getENDDATE() {
-        return ENDDATE;
-    }
-
-    public void setENDDATE(String ENDDATE) {
-        this.ENDDATE = ENDDATE;
-    }
-
-    public int getACTIVE() {
-        return ACTIVE;
-    }
-
-    public void setACTIVE(int ACTIVE) {
-        this.ACTIVE = ACTIVE;
-    }
 }

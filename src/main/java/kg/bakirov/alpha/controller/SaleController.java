@@ -110,6 +110,17 @@ public class SaleController {
         }
     }
 
+    @PostMapping("/client/{code}")
+    public ResponseEntity<?> salesClientFiches(@RequestBody ResponseSale response, @PathVariable String code) {
+        try {
+            return ResponseEntity.ok(saleService.getSalesClientFiches(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex(), code));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/client/top")
     public ResponseEntity<?> salesClientTop(@RequestBody ResponseSale response) {
         try {
