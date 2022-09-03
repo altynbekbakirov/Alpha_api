@@ -874,7 +874,9 @@ public class SaleRepository {
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND (STRNS.TRCODE IN (7,8)) AND (STRNS.CLIENTREF = CLNTC.LOGICALREF) " +
                     "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?)), 0), 2) as  satis_maliyeti_usd " +
 
-                    "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS As ITEMS WHERE (CARDTYPE <> 22) ORDER BY CODE";
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS As ITEMS " +
+                    "WHERE (CARDTYPE <> 22) AND (LOGICALREF IN (SELECT STOCKREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE))" +
+                    "ORDER BY CODE";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
             statement.setString(1, begdate);

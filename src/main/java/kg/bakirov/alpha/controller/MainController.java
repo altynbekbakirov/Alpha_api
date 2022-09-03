@@ -50,4 +50,14 @@ public class MainController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
+    // NETWORK CLEAR
+    @GetMapping("/{firmNo}/clear")
+    public ResponseEntity<?> networkClear(@PathVariable("firmNo") int id) {
+        try {
+            return ResponseEntity.ok(mainService.networkClear(id));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

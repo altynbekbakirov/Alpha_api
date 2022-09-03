@@ -38,4 +38,9 @@ public class MainService {
         return wareHouseList;
     }
 
+    public String networkClear(int firmNo) throws NotFoundException {
+        mainRepository.networkClear(firmNo);
+        return "Ok";
+    }
+
 }

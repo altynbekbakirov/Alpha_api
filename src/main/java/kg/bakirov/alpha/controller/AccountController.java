@@ -8,6 +8,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
 @RestController
 @CrossOrigin
 @RequestMapping("/accounts")
@@ -85,6 +91,24 @@ public class AccountController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
+    }
+
+    @PostMapping("/aging")
+    public ResponseEntity<?> accountDebitAging(@RequestBody ResponseAccount response) {
+        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+        Date currentDate = new Date();
+        System.out.println(dateFormat.format(currentDate));
+        Calendar c = Calendar.getInstance();
+        c.setTime(currentDate);
+        c.add(Calendar.DATE, -30);
+        Date currentDatePlusOne = c.getTime();
+        String date1 = dateFormat.format(currentDatePlusOne);
+        c.add(Calendar.DATE, -30);
+        currentDatePlusOne = c.getTime();
+        String date2 = dateFormat.format(currentDatePlusOne);
+
+        System.out.println(date1);
+        return ResponseEntity.ok(date2);
     }
 
 }

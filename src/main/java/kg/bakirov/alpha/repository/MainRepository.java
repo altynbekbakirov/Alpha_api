@@ -43,7 +43,7 @@ public class MainRepository {
 
 
     /* ---------------------------------------- Очистка сетевого файла ------------------------------------------------ */
-    public void deleteNetwork(int firmno) {
+    public void networkClear(int firmno) {
         String firm = String.format("%03d", firmno);
         jdbcTemplate.update("DELETE FROM L_NET DELETE FROM L_GOUSERS DELETE FROM LG_NET_" + firm);
     }
