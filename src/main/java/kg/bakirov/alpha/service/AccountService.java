@@ -54,4 +54,10 @@ public class AccountService {
         return productList;
     }
 
+    public List<AccountAging> getAccountsAging(int firmNo, int periodNo, String date1, String date2, String date3, String date4, String date5) throws NotFoundException {
+        List<AccountAging> productList = accountRepository.getAccountsAging(firmNo, periodNo, date1, date2, date3, date4, date5);
+        if (productList.size() == 0) throw new NotFoundException("No records");
+        return productList;
+    }
+
 }

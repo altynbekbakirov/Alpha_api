@@ -521,4 +521,73 @@ public class AccountRepository {
         }
         return accountFiches;
     }
+
+    /* ------------------------------------------ Отчет просроченных долгов ----------------------------------------------- */
+    public List<AccountAging> getAccountsAging(int firmno, int periodno, String date1, String date2, String date3, String date4, String date5) {
+
+        utility.CheckCompany(firmno, periodno);
+        List<AccountAging> accountAgings = new ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "Set DateFormat DMY " +
+                    "SELECT LOGICALREF as id,  CODE  as code, DEFINITION_  as name, TELCODES1 + '' + TELNRS1  as phone, " +
+                    
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (YEAR(DATE_) = ?) and (DATE_<=?) and (SIGN=0))),0) -" +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (YEAR(DATE_) = ?) and (DATE_<=?) and (SIGN=1))),0) as balance, " +
+
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment1, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment2, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment3, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment4, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment5, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) AND (SIGN=1))),0) payment, " +
+                    
+                    "Isnull((Select CONVERT(varchar, Max(CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END ), 104) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) AND (TRCODE IN (1,20,2,21)))), '') as lastFinTrans, " +
+                    "Isnull((Select CONVERT(varchar, Max(CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END ), 104) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) AND (TRCODE IN (37,38,32,33)))), '') as lastMatTrans " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD AS CarKart " +
+                    "Where (CarKart.CardType in (1,2,3)) AND (CarKart.ACTIVE = 0) " +
+                    "AND (CarKart.LOGICALREF IN (Select CLIENTREF From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE)) " +
+                    "Order by CODE ";
+
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setInt(1, Integer.parseInt(date5.split("\\.")[2]));
+            statement.setString(2, date5);
+            statement.setInt(3, Integer.parseInt(date5.split("\\.")[2]));
+            statement.setString(4, date5);
+            statement.setString(5, date1);
+            statement.setString(6, date1);
+            statement.setString(7, date2);
+            statement.setString(8, date2);
+            statement.setString(9, date3);
+            statement.setString(10, date3);
+            statement.setString(11, date4);
+            statement.setString(12, date4);
+            statement.setString(13, date5);
+            statement.setString(14, date5);
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                AccountAging fiche = new AccountAging();
+                fiche.setCode(resultSet.getString("code"));
+                fiche.setName(resultSet.getString("name"));
+                fiche.setPhone(resultSet.getString("phone"));
+                fiche.setBalance(resultSet.getDouble("balance"));
+                fiche.setPayment1(resultSet.getDouble("payment1"));
+                fiche.setPayment2(resultSet.getDouble("payment2"));
+                fiche.setPayment3(resultSet.getDouble("payment3"));
+                fiche.setPayment4(resultSet.getDouble("payment4"));
+                fiche.setPayment5(resultSet.getDouble("payment5"));
+                fiche.setPayment(resultSet.getDouble("payment"));
+                fiche.setLastFinTrans(resultSet.getString("lastFinTrans"));
+                fiche.setLastMatTrans(resultSet.getString("lastMatTrans"));
+                accountAgings.add(fiche);
+            }
+
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return accountAgings;
+    }
+
 }

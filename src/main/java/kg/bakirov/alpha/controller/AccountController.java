@@ -95,20 +95,43 @@ public class AccountController {
 
     @PostMapping("/aging")
     public ResponseEntity<?> accountDebitAging(@RequestBody ResponseAccount response) {
-        DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
-        Date currentDate = new Date();
-        System.out.println(dateFormat.format(currentDate));
-        Calendar c = Calendar.getInstance();
-        c.setTime(currentDate);
-        c.add(Calendar.DATE, -30);
-        Date currentDatePlusOne = c.getTime();
-        String date1 = dateFormat.format(currentDatePlusOne);
-        c.add(Calendar.DATE, -30);
-        currentDatePlusOne = c.getTime();
-        String date2 = dateFormat.format(currentDatePlusOne);
+        try {
+            DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+            Date currentDate;
+            Date dateEnd = new SimpleDateFormat("dd.MM.yyyy").parse(response.getEnddate());
+            Calendar c = Calendar.getInstance();
 
-        System.out.println(date1);
-        return ResponseEntity.ok(date2);
+            if (c.getWeekYear() > (dateEnd.getYear() + 1900)) {
+                currentDate = dateEnd;
+            } else {
+                currentDate = new Date();
+            }
+
+            String date5 = dateFormat.format(currentDate);
+
+            c.setTime(currentDate);
+            c.add(Calendar.DATE, -30);
+            Date currentDatePlusOne = c.getTime();
+            String date4 = dateFormat.format(currentDatePlusOne);
+
+            c.add(Calendar.DATE, -30);
+            currentDatePlusOne = c.getTime();
+            String date3 = dateFormat.format(currentDatePlusOne);
+
+            c.add(Calendar.DATE, -30);
+            currentDatePlusOne = c.getTime();
+            String date2 = dateFormat.format(currentDatePlusOne);
+
+            c.add(Calendar.DATE, -30);
+            currentDatePlusOne = c.getTime();
+            String date1 = dateFormat.format(currentDatePlusOne);
+
+            return ResponseEntity.ok(accountService.getAccountsAging(response.getFirmno(), response.getPeriodno(), date1, date2, date3, date4, date5));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 
 }
