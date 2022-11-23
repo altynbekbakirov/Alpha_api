@@ -6,9 +6,10 @@ import lombok.Data;
 @AllArgsConstructor
 @Data
 public class ResponseSale1 {
-    private int firmno;
-    private int periodno;
-    private String begdate;
-    private String enddate;
-
+    private int firmNo;
+    private int periodNo;
+    private String begDate;
+    private String endDate;
+    private int sourceIndex;
+    private  String filterName;
 }

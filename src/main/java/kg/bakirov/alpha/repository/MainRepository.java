@@ -23,7 +23,7 @@ public class MainRepository {
 
     /* ---------------------------------------- Список компаний ------------------------------------------------ */
     public List<Firm> getFirmList() {
-        return jdbcTemplate.query("SELECT NR, NAME, TITLE FROM L_CAPIFIRM WITH(NOLOCK) ORDER BY NR", new BeanPropertyRowMapper<>(Firm.class));
+        return jdbcTemplate.query("SELECT LOGICALREF AS id, NR, NAME, TITLE, PERNR FROM L_CAPIFIRM WITH(NOLOCK) ORDER BY NR", new BeanPropertyRowMapper<>(Firm.class));
     }
 
 
@@ -43,9 +43,9 @@ public class MainRepository {
 
 
     /* ---------------------------------------- Очистка сетевого файла ------------------------------------------------ */
-    public void networkClear(int firmno) {
-        String firm = String.format("%03d", firmno);
-        jdbcTemplate.update("DELETE FROM L_NET DELETE FROM L_GOUSERS DELETE FROM LG_NET_" + firm);
+    public void networkClear(int firmNo) {
+        String firm = String.format("%03d", firmNo);
+        jdbcTemplate.update("DELETE FROM L_NET DELETE FROM L_GOUSERS DELETE FROM LG_NET_" + firmNo);
     }
 
 

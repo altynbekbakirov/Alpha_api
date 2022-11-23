@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -33,9 +34,9 @@ public class SafeRepository {
 
 
     /* ------------------------------------------ Список касс ---------------------------------------------------- */
-    public List<Safe> getSafes(int firmno, int periodno) {
+    public List<Safe> getSafes(int firmNo, int periodNo) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<Safe> list = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
@@ -72,35 +73,41 @@ public class SafeRepository {
     }
 
     /* ------------------------------------------ Выписка всех касс ---------------------------------------------------- */
-    public List<SafeExtract> getSafesExtract(int firmno, int periodno, String begdate, String enddate) {
+    public List<SafeExtract> getSafesExtract(int firmNo, int periodNo, String begDate, String endDate, String filterName, String operationType) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SafeExtract> list = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY " +
-                    "SELECT " +
-                    "CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.FICHENO AS ficheno, LGMAIN.CUSTTITLE AS title, " +
+            String sqlQuery = "SELECT " +
+                    "CONVERT(varchar, LGMAIN.DATE_, 23) AS date, KSCARD.NAME AS safe_, LGMAIN.FICHENO AS ficheno, LGMAIN.CUSTTITLE AS title, " +
                     "LGMAIN.LINEEXP AS definition, LGMAIN.TRCODE AS trcode, LGMAIN.SIGN AS sign, LGMAIN.TRNET AS net, " +
                     "LGMAIN.REPORTNET AS netusd, LGMAIN.HOUR_ AS hour, LGMAIN.MINUTE_ AS minute " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_KSLINES LGMAIN " +
-                    "WHERE (LGMAIN.DATE_ >= ? AND LGMAIN.DATE_ <= ?) " +
-                    "ORDER BY LGMAIN.CARDREF, LGMAIN.DATE_, LGMAIN.HOUR_, LGMAIN.MINUTE_, LGMAIN.FICHENO";
+                    "INNER JOIN LG_" + GLOBAL_FIRM_NO + "_KSCARD KSCARD ON LGMAIN.CARDREF = KSCARD.LOGICALREF " +
+                    "WHERE (LGMAIN.DATE_ >= CONVERT(dateTime, ?, 104) AND LGMAIN.DATE_ <= CONVERT(dateTime, ?, 104)) ";
+            if (!filterName.isEmpty()) {
+                sqlQuery += "AND ((LGMAIN.CUSTTITLE LIKE '%" + filterName + "%') OR (LGMAIN.LINEEXP LIKE '%" + filterName + "%')) ";
+            }
+
+            sqlQuery += "AND (LGMAIN.TRCODE IN (" + operationType + ")) " +
+                    "ORDER BY LGMAIN.DATE_, LGMAIN.HOUR_, LGMAIN.MINUTE_, LGMAIN.FICHENO";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
                 SafeExtract safe = new SafeExtract();
                 safe.setDate(resultSet.getString("date"));
+                safe.setSafe_(resultSet.getString("safe_"));
                 safe.setFicheNo(resultSet.getString("ficheno"));
                 safe.setTitle(resultSet.getString("title"));
                 safe.setDefinition(resultSet.getString("definition"));
                 safe.setTrCode(resultSet.getByte("trcode"));
-                if (resultSet.getInt("sign") ==0 ) {
+                if (resultSet.getInt("sign") == 0) {
                     safe.setCollection(resultSet.getDouble("net"));
                     safe.setCollectionUsd(resultSet.getDouble("netUsd"));
                 } else {
@@ -120,37 +127,41 @@ public class SafeRepository {
 
 
     /* ------------------------------------------ Выписка одной кассы ---------------------------------------------------- */
-    public List<SafeExtract> getSafeExtract(int firmno, int periodno, String begdate, String enddate, String code) {
+    public List<SafeExtract> getSafeExtract(int firmNo, int periodNo, String begDate, String endDate, String code, String filterName, String operationType) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SafeExtract> list = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY " +
-                    "SELECT " +
-                    "CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.FICHENO AS ficheno, LGMAIN.CUSTTITLE AS title, " +
+            String sqlQuery = "SELECT " +
+                    "CONVERT(varchar, LGMAIN.DATE_, 23) AS date, KSCARD.NAME AS safe_, LGMAIN.FICHENO AS ficheno, LGMAIN.CUSTTITLE AS title, " +
                     "LGMAIN.LINEEXP AS definition, LGMAIN.TRCODE AS trcode, LGMAIN.SIGN AS sign, LGMAIN.TRNET AS net, " +
                     "LGMAIN.REPORTNET AS netusd, LGMAIN.HOUR_ AS hour, LGMAIN.MINUTE_ AS minute " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_KSLINES LGMAIN " +
-                    "WHERE (LGMAIN.DATE_ >= ? AND LGMAIN.DATE_ <= ?) " +
-                    "AND (LGMAIN.CARDREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_KSCARD WHERE CODE = ?))" +
+                    "INNER JOIN LG_" + GLOBAL_FIRM_NO + "_KSCARD KSCARD ON LGMAIN.CARDREF = KSCARD.LOGICALREF " +
+                    "WHERE (LGMAIN.DATE_ >= CONVERT(dateTime, ?, 104) AND LGMAIN.DATE_ <= CONVERT(dateTime, ?, 104)) " +
+                    "AND KSCARD.CODE = ? AND (LGMAIN.CUSTTITLE LIKE ? OR LGMAIN.LINEEXP LIKE ?) " +
+                    "AND (LGMAIN.TRCODE IN (" + operationType + ")) " +
                     "ORDER BY LGMAIN.CARDREF, LGMAIN.DATE_, LGMAIN.HOUR_, LGMAIN.MINUTE_, LGMAIN.FICHENO";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
             statement.setString(3, code);
+            statement.setString(4, "%" + filterName + "%");
+            statement.setString(5, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
                 SafeExtract safe = new SafeExtract();
                 safe.setDate(resultSet.getString("date"));
+                safe.setSafe_(resultSet.getString("safe_"));
                 safe.setFicheNo(resultSet.getString("ficheno"));
                 safe.setTitle(resultSet.getString("title"));
                 safe.setDefinition(resultSet.getString("definition"));
                 safe.setTrCode(resultSet.getByte("trcode"));
-                if (resultSet.getInt("sign") ==0 ) {
+                if (resultSet.getInt("sign") == 0) {
                     safe.setCollection(resultSet.getDouble("net"));
                     safe.setCollectionUsd(resultSet.getDouble("netUsd"));
                 } else {
@@ -170,26 +181,25 @@ public class SafeRepository {
 
 
     /* ------------------------------------------ Реэюме кассового счета ---------------------------------------------------- */
-    public List<SafeResume> getSafeResume(int firmno, int periodno, String begdate, String enddate, String code) {
+    public List<SafeResume> getSafeResume(int firmNo, int periodNo, String begDate, String endDate, String code) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SafeResume> list = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY " +
-                    "SELECT CASHTOT.TOTTYPE AS currency, CASHTOT.DAY_  AS day, " +
+            String sqlQuery = "SELECT CASHTOT.TOTTYPE AS currency, CASHTOT.DAY_  AS day, " +
                     "SUM(CASHTOT.DEBIT) AS debit, SUM(CASHTOT.CREDIT) AS credit, MONTH(CASHTOT.DATE_) AS month " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CSHTOTS CASHTOT " +
                     "WHERE   (CASHTOT.TOTTYPE IN (1, 2)) AND (CASHTOT.DAY_ >= 0) " +
                     "AND (CASHTOT.CARDREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_KSCARD WHERE CODE = ?)) " +
-                    "AND ((CASHTOT.DATE_ >= ?) AND (CASHTOT.DATE_ <= ?)) " +
+                    "AND ((CASHTOT.DATE_ >= CONVERT(dateTime, ?, 104)) AND (CASHTOT.DATE_ <= CONVERT(dateTime, ?, 104))) " +
                     "GROUP BY CASHTOT.TOTTYPE, MONTH(CASHTOT.DATE_), CASHTOT.DAY_";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
             statement.setString(1, code);
-            statement.setString(2, begdate);
-            statement.setString(3, enddate);
+            statement.setString(2, begDate);
+            statement.setString(3, endDate);
             ResultSet resultSet = statement.executeQuery();
 
             Map<Integer, SafeResume> map = new HashMap<>();

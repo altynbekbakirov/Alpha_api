@@ -2,6 +2,7 @@ package kg.bakirov.alpha.controller;
 
 import kg.bakirov.alpha.exception.NotFoundException;
 import kg.bakirov.alpha.model.purchases.ResponseModel;
+import kg.bakirov.alpha.model.sales.ResponseClient;
 import kg.bakirov.alpha.model.sales.ResponseSale;
 import kg.bakirov.alpha.model.sales.ResponseSale1;
 import kg.bakirov.alpha.service.SaleService;
@@ -23,9 +24,10 @@ public class SaleController {
     }
 
     @PostMapping
-    public ResponseEntity<?> sales(@RequestBody ResponseSale response) {
+    public ResponseEntity<?> sales(@RequestBody ResponseClient response) {
         try {
-            return ResponseEntity.ok(saleService.getSales(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSales(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex(), response.getOperationType(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -36,7 +38,7 @@ public class SaleController {
     @PostMapping("{fiche}")
     public ResponseEntity<?> getFiche(@RequestBody ResponseModel response, @PathVariable String fiche) {
         try {
-            return ResponseEntity.ok(saleService.getFiche(response.getFirmno(), response.getPeriodno(), Integer.parseInt(fiche)));
+            return ResponseEntity.ok(saleService.getFiche(response.getFirmNo(), response.getPeriodNo(), Integer.parseInt(fiche)));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -47,7 +49,8 @@ public class SaleController {
     @PostMapping("/total")
     public ResponseEntity<?> salesTotal(@RequestBody ResponseSale1 response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesTotal(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+            return ResponseEntity.ok(saleService.getSalesTotal(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(),
+                    response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -58,7 +61,8 @@ public class SaleController {
     @PostMapping("/month")
     public ResponseEntity<?> salesMonth(@RequestBody ResponseSale response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesMonth(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSalesMonth(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -69,7 +73,8 @@ public class SaleController {
     @PostMapping("/daily")
     public ResponseEntity<?> salesDaily(@RequestBody ResponseSale response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesDaily(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSalesDaily(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -78,9 +83,10 @@ public class SaleController {
     }
 
     @PostMapping("/manager")
-    public ResponseEntity<?> salesManager(@RequestBody ResponseSale response) {
+    public ResponseEntity<?> salesManager(@RequestBody ResponseSale1 response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesManager(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSalesManager(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -91,7 +97,7 @@ public class SaleController {
     @PostMapping("/manager/{code}")
     public ResponseEntity<?> salesManager(@RequestBody ResponseSale response, @PathVariable String code) {
         try {
-            return ResponseEntity.ok(saleService.getSalesManagerOne(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex(), code));
+            return ResponseEntity.ok(saleService.getSalesManagerOne(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), response.getSourceIndex(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -100,9 +106,10 @@ public class SaleController {
     }
 
     @PostMapping("/client")
-    public ResponseEntity<?> salesClient(@RequestBody ResponseSale response) {
+    public ResponseEntity<?> salesClient(@RequestBody ResponseSale1 response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesClient(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSalesClient(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -113,7 +120,7 @@ public class SaleController {
     @PostMapping("/client/{code}")
     public ResponseEntity<?> salesClientFiches(@RequestBody ResponseSale response, @PathVariable String code) {
         try {
-            return ResponseEntity.ok(saleService.getSalesClientFiches(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex(), code));
+            return ResponseEntity.ok(saleService.getSalesClientFiches(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), response.getSourceIndex(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -124,7 +131,7 @@ public class SaleController {
     @PostMapping("/client/top")
     public ResponseEntity<?> salesClientTop(@RequestBody ResponseSale response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesClientTop(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSalesClientTop(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), response.getSourceIndex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -133,9 +140,10 @@ public class SaleController {
     }
 
     @PostMapping("/table")
-    public ResponseEntity<?> salesTable(@RequestBody ResponseSale response) {
+    public ResponseEntity<?> salesTable(@RequestBody ResponseSale1 response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesTable(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSalesTable(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -144,9 +152,10 @@ public class SaleController {
     }
 
     @PostMapping("/detail")
-    public ResponseEntity<?> salesDetail(@RequestBody ResponseSale response) {
+    public ResponseEntity<?> salesDetail(@RequestBody ResponseSale1 response) {
         try {
-            return ResponseEntity.ok(saleService.getSalesDetail(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(saleService.getSalesDetail(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(),
+                    response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

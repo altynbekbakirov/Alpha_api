@@ -28,20 +28,20 @@ public class SafeService {
         return list;
     }
 
-    public List<SafeExtract> getSafesExtracts(int firmNo, int periodNo, String begdate, String enddate) throws NotFoundException {
-        List<SafeExtract> list = safeRepository.getSafesExtract(firmNo, periodNo, begdate, enddate);
+    public List<SafeExtract> getSafesExtracts(int firmNo, int periodNo, String begDate, String endDate, String filterName, String operationType) throws NotFoundException {
+        List<SafeExtract> list = safeRepository.getSafesExtract(firmNo, periodNo, begDate, endDate, filterName, operationType);
         if (list.size() == 0) throw new NotFoundException("No records");
         return list;
     }
 
-    public List<SafeExtract> getSafeExtracts(int firmNo, int periodNo, String begdate, String enddate, String code) throws NotFoundException {
-        List<SafeExtract> list = safeRepository.getSafeExtract(firmNo, periodNo, begdate, enddate, code);
+    public List<SafeExtract> getSafeExtracts(int firmNo, int periodNo, String begDate, String endDate, String code, String filterName, String operationType) throws NotFoundException {
+        List<SafeExtract> list = safeRepository.getSafeExtract(firmNo, periodNo, begDate, endDate, code, filterName, operationType);
         if (list.size() == 0) throw new NotFoundException("No records");
         return list;
     }
 
-    public List<SafeResume> getSafeResume(int firmNo, int periodNo, String begdate, String enddate, String code) throws NotFoundException {
-        List<SafeResume> list = safeRepository.getSafeResume(firmNo, periodNo, begdate, enddate, code);
+    public List<SafeResume> getSafeResume(int firmNo, int periodNo, String begDate, String endDate, String code) throws NotFoundException {
+        List<SafeResume> list = safeRepository.getSafeResume(firmNo, periodNo, begDate, endDate, code);
         if (list.size() == 0) throw new NotFoundException("No records");
         return list;
     }

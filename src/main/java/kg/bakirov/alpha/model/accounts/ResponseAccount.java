@@ -6,8 +6,9 @@ import lombok.Data;
 @AllArgsConstructor
 @Data
 public class ResponseAccount {
-    private int firmno;
-    private int periodno;
-    private String begdate;
-    private String enddate;
+    private int firmNo;
+    private int periodNo;
+    private String begDate;
+    private String endDate;
+    private String filterName;
 }

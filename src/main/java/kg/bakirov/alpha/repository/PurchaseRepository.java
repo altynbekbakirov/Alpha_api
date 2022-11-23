@@ -26,14 +26,14 @@ public class PurchaseRepository {
     }
 
     /* ------------------------------------------ Список документов ---------------------------------------------------- */
-    public List<PurchaseFiches> getPurchases(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<PurchaseFiches> getPurchases(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String operationType, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<PurchaseFiches> purchasesFicheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE trcode, " +
+            String sqlQuery = "SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE trcode, " +
                     "STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
                     "ISNULL(CLNTC.CODE, 0) as clientcode, ISNULL(CLNTC.DEFINITION_, 0) as clientname, " +
                     "ROUND(CASE STFIC.TRCODE WHEN 6 THEN -STFIC.GROSSTOTAL ELSE STFIC.GROSSTOTAL END, 2) AS gross, " +
@@ -50,14 +50,17 @@ public class PurchaseRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (1, 6)) AND (STFIC.SOURCEINDEX = ?) " +
-                    "AND ((STFIC.DATE_>=?) AND (STFIC.DATE_<=?)) " +
-                    "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
+                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN(" + operationType + ")) AND (STFIC.SOURCEINDEX = ?) " +
+                    "AND ((STFIC.DATE_>= CONVERT(dateTime, ?, 104)) AND (STFIC.DATE_<= CONVERT(dateTime, ?, 104))) ";
+            if (!filterName.isEmpty()) {
+                sqlQuery += "AND (CLNTC.CODE LIKE '%" + filterName + "%' OR CLNTC.DEFINITION_ LIKE '%" + filterName + "%') ";
+            }
+            sqlQuery += "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setInt(1, sourceindex);
-            statement.setString(2, begdate);
-            statement.setString(3, enddate);
+            statement.setInt(1, sourceIndex);
+            statement.setString(2, begDate);
+            statement.setString(3, endDate);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -86,9 +89,9 @@ public class PurchaseRepository {
     }
 
     /* ------------------------------------------ Контента документа ---------------------------------------------------- */
-    public List<PurchaseFiche> getFiche(int firmno, int periodno, int fiche) {
+    public List<PurchaseFiche> getFiche(int firmNo, int periodNo, int fiche) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<PurchaseFiche> purchasesFicheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
@@ -133,27 +136,30 @@ public class PurchaseRepository {
 
 
     /* ------------------------------------------ Итоговые цифры закупок ---------------------------------------------------- */
-    public List<PurchaseTotal> getPurchasesTotal(int firmno, int periodno, String begdate, String enddate) {
+    public List<PurchaseTotal> getPurchasesTotal(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<PurchaseTotal> purchaseTotals = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
+            String sqlQuery = "SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
                     "SUM(STITOTS.PURAMNT) AS purchase_count, ROUND(SUM(STITOTS.PURCASH), 2) AS purchase_total, " +
                     "ROUND(SUM(STITOTS.PURCURR), 2) AS purchase_total_usd, SUM(STITOTS.SALAMNT) AS sale_count, " +
                     "ROUND(SUM(STITOTS.SALCASH), 2) AS sale_total, ROUND(SUM(STITOTS.SALCURR), 2) AS sale_total_usd " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVTOT STITOTS " +
-                    "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVTOT_I2) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS ON STITOTS.STOCKREF = ITEMS.LOGICALREF " +
-                    "WHERE (STITOTS.INVENNO = -1) AND (STITOTS.PURAMNT <> 0) " +
-                    "AND (STITOTS.DATE_ >= ? AND STITOTS.DATE_ <= ?) " +
+                    "WHERE (STITOTS.INVENNO IN (?)) AND (STITOTS.PURAMNT <> 0) " +
+                    "AND (STITOTS.DATE_ >= CONVERT(dateTime, ?, 104)) AND (STITOTS.DATE_  <= CONVERT(dateTime, ?, 104)) " +
+                    "AND (ITEMS.CODE LIKE ? OR ITEMS.NAME LIKE ?) " +
                     "GROUP BY ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE ORDER BY ITEMS.CODE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
+            statement.setInt(1, sourceIndex);
+            statement.setString(2, begDate);
+            statement.setString(3, endDate);
+            statement.setString(4, "%" + filterName + "%");
+            statement.setString(5, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -188,7 +194,7 @@ public class PurchaseRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
+            String sqlQuery = "SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
                     "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 1))), 0) AS JAN_COUNT, " +
                     "ISNULL((SELECT ITMSM.PURCHASES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
@@ -223,9 +229,9 @@ public class PurchaseRepository {
                     "WHERE (ITEMS.CARDTYPE) <> 22 AND (ITEMS.ACTIVE = 0) " +
                     "AND (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
                     "AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>= CONVERT(dateTime, ?, 104)) AND (DATE_<= CONVERT(dateTime, ?, 104))) and  ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)<>0) " +
+                    "AND (CANCELLED=0) AND ((DATE_>= CONVERT(dateTime, ?, 104)) AND (DATE_<= CONVERT(dateTime, ?, 104))) and  ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)<>0) " +
                     "Order BY code";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -270,15 +276,15 @@ public class PurchaseRepository {
 
 
     /* ------------------------------------------ Распределение закупок по контрагентам ---------------------------------------------------- */
-    public List<PurchaseClient> getPurchasesClient(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<PurchaseClient> getPurchasesClient(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<PurchaseClient> purchasesClientList = new ArrayList<>();
         Map<String, PurchaseClient> map = new TreeMap<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
+            String sqlQuery = "SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
                     "ITMSC.CODE AS item_code, ITMSC.NAME AS item_name, ITMSC.STGRPCODE AS item_group, " +
                     "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
                     "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
@@ -292,59 +298,62 @@ public class PurchaseRepository {
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (1,5,6,10,26,30,31,32,33,34) ) AND (STFIC.CANCELLED = 0) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND  (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND  (STRNS.SOURCEINDEX = ?)" +
+                    "AND (CLNTC.CODE LIKE ? OR CLNTC.DEFINITION_ LIKE ?) " +
                     "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, ITMSC.CODE, ITMSC.NAME, ITMSC.STGRPCODE, STRNS.TRCODE " +
                     "ORDER BY CLNTC.CODE, ITMSC.CODE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
+            statement.setString(4, "%" + filterName + "%");
+            statement.setString(5, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             double count, countRet, total, totalUsd, totalRet, totalRetUsd;
 
             while (resultSet.next()) {
-                 if (map.containsKey(resultSet.getString("client_code"))) {
-                     PurchaseClient client = map.get(resultSet.getString("client_code"));
-                     if (resultSet.getDouble("trcode") == 1) {
-                         count = client.getItemAmount() + resultSet.getDouble("amount");
-                         total = client.getItemTotal() + resultSet.getDouble("total");
-                         totalUsd = client.getItemTotalUsd() + resultSet.getDouble("total_usd");
-                         client.setItemAmount(count);
-                         client.setItemTotal(total);
-                         client.setItemTotalUsd(totalUsd);
-                     } else if (resultSet.getDouble("trcode") == 6) {
-                         countRet = client.getItemAmountRet() + resultSet.getDouble("amount");
-                         totalRet = client.getItemTotalRet() + resultSet.getDouble("total");
-                         totalRetUsd = client.getItemTotalUsdRet() + resultSet.getDouble("total_usd");
-                         client.setItemAmountRet(countRet);
-                         client.setItemTotalRet(totalRet);
-                         client.setItemTotalUsdRet(totalRetUsd);
-                     }
-                     map.put(resultSet.getString("client_code"), client);
-                 } else {
-                     PurchaseClient client = new PurchaseClient();
-                     client.setClientCode(resultSet.getString("client_code"));
-                     client.setClientName(resultSet.getString("client_name"));
+                if (map.containsKey(resultSet.getString("client_code"))) {
+                    PurchaseClient client = map.get(resultSet.getString("client_code"));
+                    if (resultSet.getDouble("trcode") == 1) {
+                        count = client.getItemAmount() + resultSet.getDouble("amount");
+                        total = client.getItemTotal() + resultSet.getDouble("total");
+                        totalUsd = client.getItemTotalUsd() + resultSet.getDouble("total_usd");
+                        client.setItemAmount(count);
+                        client.setItemTotal(total);
+                        client.setItemTotalUsd(totalUsd);
+                    } else if (resultSet.getDouble("trcode") == 6) {
+                        countRet = client.getItemAmountRet() + resultSet.getDouble("amount");
+                        totalRet = client.getItemTotalRet() + resultSet.getDouble("total");
+                        totalRetUsd = client.getItemTotalUsdRet() + resultSet.getDouble("total_usd");
+                        client.setItemAmountRet(countRet);
+                        client.setItemTotalRet(totalRet);
+                        client.setItemTotalUsdRet(totalRetUsd);
+                    }
+                    map.put(resultSet.getString("client_code"), client);
+                } else {
+                    PurchaseClient client = new PurchaseClient();
+                    client.setClientCode(resultSet.getString("client_code"));
+                    client.setClientName(resultSet.getString("client_name"));
 
-                     if (resultSet.getDouble("trcode") == 1) {
-                         client.setItemAmount(resultSet.getDouble("amount"));
-                         client.setItemTotal(resultSet.getDouble("total"));
-                         client.setItemTotalUsd(resultSet.getDouble("total_usd"));
-                         client.setItemAmountRet(0.0);
-                         client.setItemTotalRet(0.0);
-                         client.setItemTotalUsdRet(0.0);
-                     } else if (resultSet.getDouble("trcode") == 6) {
-                         client.setItemAmount(0.0);
-                         client.setItemTotal(0.0);
-                         client.setItemTotalUsd(0.0);
-                         client.setItemAmountRet(resultSet.getDouble("amount"));
-                         client.setItemTotalRet(resultSet.getDouble("total"));
-                         client.setItemTotalUsdRet(resultSet.getDouble("total_usd"));
-                     }
-                     map.put(resultSet.getString("client_code"), client);
-                 }
+                    if (resultSet.getDouble("trcode") == 1) {
+                        client.setItemAmount(resultSet.getDouble("amount"));
+                        client.setItemTotal(resultSet.getDouble("total"));
+                        client.setItemTotalUsd(resultSet.getDouble("total_usd"));
+                        client.setItemAmountRet(0.0);
+                        client.setItemTotalRet(0.0);
+                        client.setItemTotalUsdRet(0.0);
+                    } else if (resultSet.getDouble("trcode") == 6) {
+                        client.setItemAmount(0.0);
+                        client.setItemTotal(0.0);
+                        client.setItemTotalUsd(0.0);
+                        client.setItemAmountRet(resultSet.getDouble("amount"));
+                        client.setItemTotalRet(resultSet.getDouble("total"));
+                        client.setItemTotalUsdRet(resultSet.getDouble("total_usd"));
+                    }
+                    map.put(resultSet.getString("client_code"), client);
+                }
             }
             purchasesClientList.addAll(map.values());
         } catch (SQLException throwable) {
@@ -362,8 +371,7 @@ public class PurchaseRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY " +
-                    "SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE  trcode, " +
+            String sqlQuery = "SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE  trcode, " +
                     "    STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
                     "    ISNULL(CLNTC.CODE, 0) as clientcode, ISNULL(CLNTC.DEFINITION_, 0) as clientname, " +
                     "    STFIC.GROSSTOTAL AS gross, STFIC.TOTALDISCOUNTS AS discounts, STFIC.TOTALEXPENSES AS expenses, " +
@@ -378,7 +386,7 @@ public class PurchaseRepository {
                     "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
                     "    WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (1,5,6,10,26,30,31,32,33,34)) " +
-                    "    AND ((STFIC.DATE_>=?) AND (STFIC.DATE_<=?)) AND (STFIC.SOURCEINDEX = ?) " +
+                    "    AND ((STFIC.DATE_>= CONVERT(dateTime, ?, 104)) AND (STFIC.DATE_<= CONVERT(dateTime, ?, 104))) AND (STFIC.SOURCEINDEX = ?) " +
                     "    AND (CLNTC.CODE = ?) " +
                     "    ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 

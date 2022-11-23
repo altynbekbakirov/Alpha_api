@@ -18,8 +18,8 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public List<Product> getProducts(int firmNo, int periodNo, String begDate, String endDate, int sourceindex) throws NotFoundException {
-        List<Product> productList = productRepository.getProducts(firmNo, periodNo, begDate, endDate, sourceindex);
+    public List<Product> getProducts(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) throws NotFoundException {
+        List<Product> productList = productRepository.getProducts(firmNo, periodNo, begDate, endDate, sourceIndex, filterName);
         if (productList.size() == 0) throw new NotFoundException("No records");
         return productList;
     }

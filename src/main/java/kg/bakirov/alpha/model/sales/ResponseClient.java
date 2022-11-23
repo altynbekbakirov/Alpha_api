@@ -1,15 +1,16 @@
-package kg.bakirov.alpha.model.products;
+package kg.bakirov.alpha.model.sales;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @AllArgsConstructor
 @Data
-public class ResponseModel {
+public class ResponseClient {
     private int firmNo;
     private int periodNo;
     private String begDate;
     private String endDate;
     private int sourceIndex;
-    private  String filterName;
+    private String filterName;
+    private String operationType;
 }

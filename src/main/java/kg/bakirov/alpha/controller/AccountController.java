@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -29,7 +28,8 @@ public class AccountController {
     @PostMapping
     public ResponseEntity<?> accounts(@RequestBody ResponseAccount response) {
         try {
-            return ResponseEntity.ok(accountService.getAccounts(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+            return ResponseEntity.ok(accountService.getAccounts(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -40,7 +40,8 @@ public class AccountController {
     @PostMapping("/debit")
     public ResponseEntity<?> accountDebit(@RequestBody ResponseAccount response) {
         try {
-            return ResponseEntity.ok(accountService.getAccountDebit(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+            return ResponseEntity.ok(accountService.getAccountDebit(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -51,7 +52,7 @@ public class AccountController {
     @PostMapping("/extract")
     public ResponseEntity<?> accountExtract(@RequestBody ResponseAccount response) {
         try {
-            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -63,7 +64,7 @@ public class AccountController {
     @PostMapping("/extract/{code}")
     public ResponseEntity<?> accountExtractOne(@RequestBody ResponseAccount response, @PathVariable String code) {
         try {
-            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), code));
+            return ResponseEntity.ok(accountService.getAccountExtract(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -74,7 +75,7 @@ public class AccountController {
     @PostMapping("/fiche")
     public ResponseEntity<?> accountFiches(@RequestBody ResponseAccount response) {
         try {
-            return ResponseEntity.ok(accountService.getAccountFiches(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+            return ResponseEntity.ok(accountService.getAccountFiches(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -85,7 +86,7 @@ public class AccountController {
     @PostMapping("/fiche/{code}")
     public ResponseEntity<?> accountFiche(@RequestBody ResponseAccount response, @PathVariable int code) {
         try {
-            return ResponseEntity.ok(accountService.getAccountFiche(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), code));
+            return ResponseEntity.ok(accountService.getAccountFiche(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -98,7 +99,7 @@ public class AccountController {
         try {
             DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
             Date currentDate;
-            Date dateEnd = new SimpleDateFormat("dd.MM.yyyy").parse(response.getEnddate());
+            Date dateEnd = new SimpleDateFormat("dd.MM.yyyy").parse(response.getEndDate());
             Calendar c = Calendar.getInstance();
 
             if (c.getWeekYear() > (dateEnd.getYear() + 1900)) {
@@ -126,7 +127,8 @@ public class AccountController {
             currentDatePlusOne = c.getTime();
             String date1 = dateFormat.format(currentDatePlusOne);
 
-            return ResponseEntity.ok(accountService.getAccountsAging(response.getFirmno(), response.getPeriodno(), date1, date2, date3, date4, date5));
+            return ResponseEntity.ok(accountService.getAccountsAging(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), date1, date2, date3, date4, date5, response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

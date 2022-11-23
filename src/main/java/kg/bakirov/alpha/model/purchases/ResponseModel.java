@@ -6,9 +6,9 @@ import lombok.Data;
 @AllArgsConstructor
 @Data
 public class ResponseModel {
-    private int firmno;
-    private int periodno;
-    private String begdate;
-    private String enddate;
-    private int sourceindex;
+    private int firmNo;
+    private int periodNo;
+    private String begDate;
+    private String endDate;
+    private int sourceIndex;
 }

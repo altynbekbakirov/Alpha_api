@@ -18,14 +18,14 @@ public class AccountService {
         this.accountRepository = accountRepository;
     }
 
-    public List<AccountDebit> getAccountDebit(int firmNo, int periodNo, String begdate, String enddate) throws NotFoundException {
-        List<AccountDebit> productList = accountRepository.getAccountDebit(firmNo, periodNo, begdate, enddate);
+    public List<AccountDebit> getAccountDebit(int firmNo, int periodNo, String begDate, String endDate, String filterName) throws NotFoundException {
+        List<AccountDebit> productList = accountRepository.getAccountDebit(firmNo, periodNo, begDate, endDate, filterName);
         if (productList.size() == 0) throw new NotFoundException("No records");
         return productList;
     }
 
-    public List<Account> getAccounts(int firmNo, int periodNo, String begdate, String enddate) throws NotFoundException {
-        List<Account> accountList = accountRepository.getAccounts(firmNo, periodNo, begdate, enddate);
+    public List<Account> getAccounts(int firmNo, int periodNo, String begDate, String endDate, String filterName) throws NotFoundException {
+        List<Account> accountList = accountRepository.getAccounts(firmNo, periodNo, begDate, endDate, filterName);
         if (accountList.size() == 0) throw new NotFoundException("No records");
         return accountList;
     }
@@ -48,14 +48,14 @@ public class AccountService {
         return productList;
     }
 
-    public List<AccountFiche> getAccountFiche(int firmNo, int periodNo, String begdate, String enddate, int code) throws NotFoundException {
-        List<AccountFiche> productList = accountRepository.getAccountFiche(firmNo, periodNo, begdate, enddate, code);
+    public List<AccountFiche> getAccountFiche(int firmNo, int periodNo, String begDate, String endDate, int code) throws NotFoundException {
+        List<AccountFiche> productList = accountRepository.getAccountFiche(firmNo, periodNo, begDate, endDate, code);
         if (productList.size() == 0) throw new NotFoundException("No records");
         return productList;
     }
 
-    public List<AccountAging> getAccountsAging(int firmNo, int periodNo, String date1, String date2, String date3, String date4, String date5) throws NotFoundException {
-        List<AccountAging> productList = accountRepository.getAccountsAging(firmNo, periodNo, date1, date2, date3, date4, date5);
+    public List<AccountAging> getAccountsAging(int firmNo, int periodNo, String begDate, String endDate, String date1, String date2, String date3, String date4, String date5, String filterName) throws NotFoundException {
+        List<AccountAging> productList = accountRepository.getAccountsAging(firmNo, periodNo, begDate, endDate, date1, date2, date3, date4, date5, filterName);
         if (productList.size() == 0) throw new NotFoundException("No records");
         return productList;
     }

@@ -23,7 +23,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<?> products(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProducts(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(productService.getProducts(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -34,7 +34,7 @@ public class ProductController {
     @PostMapping("/inventory")
     public ResponseEntity<?> productsInventory(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductsInventory(response.getFirmno(), response.getPeriodno()));
+            return ResponseEntity.ok(productService.getProductsInventory(response.getFirmNo(), response.getPeriodNo()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -45,7 +45,7 @@ public class ProductController {
     @PostMapping("/fiche")
     public ResponseEntity<?> productsFiche(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductsFiche(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(productService.getProductsFiche(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), response.getSourceIndex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -56,7 +56,7 @@ public class ProductController {
     @PostMapping("/fiche/{fiche}")
     public ResponseEntity<?> productFiche(@RequestBody ResponseModel response, @PathVariable String fiche) {
         try {
-            return ResponseEntity.ok(productService.getFiche(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), Integer.parseInt(fiche)));
+            return ResponseEntity.ok(productService.getFiche(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), Integer.parseInt(fiche)));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -67,7 +67,7 @@ public class ProductController {
     @PostMapping("/transactions")
     public ResponseEntity<?> productsTransactions(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductTransactions(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate(), response.getSourceindex()));
+            return ResponseEntity.ok(productService.getProductTransactions(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), response.getSourceIndex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -79,11 +79,11 @@ public class ProductController {
     public ResponseEntity<?> productTransactions(@RequestBody ResponseModel response, @PathVariable String code) {
         try {
             return ResponseEntity.ok(productService.getProductTransaction(
-                    response.getFirmno(),
-                    response.getPeriodno(),
-                    response.getBegdate(),
-                    response.getEnddate(),
-                    response.getSourceindex(), code));
+                    response.getFirmNo(),
+                    response.getPeriodNo(),
+                    response.getBegDate(),
+                    response.getEndDate(),
+                    response.getSourceIndex(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -94,7 +94,7 @@ public class ProductController {
     @PostMapping("/price")
     public ResponseEntity<?> productsPrice(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductsPrice(response.getFirmno(), response.getPeriodno(), response.getBegdate(), response.getEnddate()));
+            return ResponseEntity.ok(productService.getProductsPrice(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -106,10 +106,10 @@ public class ProductController {
     public ResponseEntity<?> productsPrices(@RequestBody ResponseModel response) {
         try {
             return ResponseEntity.ok(productService.getProductsPrices(
-                    response.getFirmno(),
-                    response.getPeriodno(),
-                    response.getBegdate(),
-                    response.getEnddate()));
+                    response.getFirmNo(),
+                    response.getPeriodNo(),
+                    response.getBegDate(),
+                    response.getEndDate()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -121,10 +121,10 @@ public class ProductController {
     public ResponseEntity<?> productPrices(@RequestBody ResponseModel response, @PathVariable String code) {
         try {
             return ResponseEntity.ok(productService.getProductPrices(
-                    response.getFirmno(),
-                    response.getPeriodno(),
-                    response.getBegdate(),
-                    response.getEnddate(), code));
+                    response.getFirmNo(),
+                    response.getPeriodNo(),
+                    response.getBegDate(),
+                    response.getEndDate(), code));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

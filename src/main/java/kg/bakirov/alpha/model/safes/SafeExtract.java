@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class SafeExtract {
     private String date;
+    private String safe_;
     private String ficheNo;
     private String title;
     private String definition;

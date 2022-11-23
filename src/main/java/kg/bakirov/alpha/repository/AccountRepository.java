@@ -24,57 +24,60 @@ public class AccountRepository {
 
 
     /* ------------------------------------------ Акт сверки взаиморасчетов ---------------------------------------------------- */
-    public List<Account> getAccounts(int firmno, int periodno, String begdate, String enddate) {
+    public List<Account> getAccounts(int firmNo, int periodNo, String begDate, String endDate, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<Account> accountList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY " +
-                    "SELECT CLCARD.LOGICALREF AS id, CLCARD.CODE AS kod, CLCARD.DEFINITION_ AS aciklama, CLCARD.ADDR1 AS adres, CLCARD.TELNRS1 AS telno, " +
+            String sqlQuery = "SELECT CLCARD.LOGICALREF AS id, CLCARD.CODE AS kod, CLCARD.DEFINITION_ AS aciklama, CLCARD.ADDR1 AS adres, CLCARD.TELNRS1 AS telno, " +
 
                     "ROUND(ISNULL((SELECT SUM((1-CTRNS.SIGN)*CTRNS.REPORTNET) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "AND (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= ? AND CTRNS.DATE_ <= ?) " +
+                    "AND (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.CANCELLED = 0) AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0)+ " +
                     "ISNULL((SELECT SUM(((1-CTRNS.SIGN)+(CTRNS.SIGN*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, " +
                     "LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= ? AND CTRNS.DATE_ <= ?) " +
+                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) " +
                     "AND (INVFC.CANCELLED = 0) AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) borc, " +
 
                     "ROUND(ISNULL((SELECT SUM(CTRNS.SIGN*CTRNS.REPORTNET) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= ? AND CTRNS.DATE_ <= ?) " +
+                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.CANCELLED = 0) " +
                     "AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0) + " +
                     "ISNULL((SELECT SUM((CTRNS.SIGN+((1-CTRNS.SIGN)*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, " +
                     "LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC " +
                     "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= ? AND CTRNS.DATE_ <= ?) " +
+                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) AND (INVFC.CANCELLED = 0) " +
                     "AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) as alacak  " +
 
                     "FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD As CLCARD " +
-                    "WHERE (CLCARD.CARDTYPE <> 22 AND CLCARD.CARDTYPE <> 4) ORDER BY CODE ";
+                    "WHERE (CLCARD.CARDTYPE <> 22 AND CLCARD.CARDTYPE <> 4) " +
+                    "AND (CLCARD.CODE LIKE ? OR CLCARD.DEFINITION_ LIKE ?) " +
+                    "ORDER BY CODE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setString(3, begdate);
-            statement.setString(4, enddate);
-            statement.setString(5, begdate);
-            statement.setString(6, enddate);
-            statement.setString(7, begdate);
-            statement.setString(8, enddate);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setString(3, begDate);
+            statement.setString(4, endDate);
+            statement.setString(5, begDate);
+            statement.setString(6, endDate);
+            statement.setString(7, begDate);
+            statement.setString(8, endDate);
+            statement.setString(9, "%" + filterName + "%");
+            statement.setString(10, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -101,26 +104,30 @@ public class AccountRepository {
 
 
     /* ------------------------------------------ Отчет по задолжностям ---------------------------------------------------- */
-    public List<AccountDebit> getAccountDebit(int firmno, int periodno, String begdate, String enddate) {
+    public List<AccountDebit> getAccountDebit(int firmNo, int periodNo, String begDate, String endDate, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<AccountDebit> customerDebitList = new ArrayList<>();
         List<AccountDebit> accountDebitList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY SELECT CLNTC.LOGICALREF AS id,  CTRNS.SIGN, CTRNS.REPORTNET, CTRNS.AMOUNT, " +
+            String sqlQuery = "SELECT CLNTC.LOGICALREF AS id,  CTRNS.SIGN, CTRNS.REPORTNET, CTRNS.AMOUNT, " +
                     "CLNTC.CODE, CLNTC.DEFINITION_, CLNTC.TELNRS1, CLNTC.ADDR1, CLNUM.RISKTOTAL, CLNUM.REPRISKTOTAL " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS WITH(NOLOCK) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (CTRNS.CLIENTREF  =  CLNTC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLRNUMS CLNUM WITH(NOLOCK) ON (CLNTC.LOGICALREF  =  CLNUM.CLCARDREF) " +
                     "WHERE (CLNTC.LOGICALREF <> 0) AND (CTRNS.CANCELLED = 0) AND (CTRNS.STATUS = 0) AND (((CTRNS.MODULENR=5) " +
                     "AND (CTRNS.TRCODE<>12)) OR (CTRNS.MODULENR<>5)) AND (CLNTC.CARDTYPE <> 22) AND (CLNUM.RISKTOTAL > 0) " +
-                    "AND (CTRNS.DATE_ >= ? AND CTRNS.DATE_ <= ?) ORDER BY CLNTC.CODE";
+                    "AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104))" +
+                    "AND (CLNTC.CODE LIKE ? OR CLNTC.DEFINITION_ LIKE ?) " +
+                    " ORDER BY CLNTC.CODE";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setString(3, "%" + filterName + "%");
+            statement.setString(4, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             double debit = 0;
@@ -197,7 +204,7 @@ public class AccountRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY SELECT TOP 300 CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
+            String sqlQuery = "SELECT TOP 300 CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
                     "CONVERT(varchar, CTRNS.DATE_, 23) AS date, CTRNS.TRCODE, CTRNS.SIGN, " +
                     "ROUND(CTRNS.REPORTNET, 2) AS reportnet, CTRNS.TRANNO, CTRNS.LINEEXP, INVFC.FROMKASA, " +
                     "INVFC.FICHENO, CASE WHEN CTRNS.TRCODE=14 AND CTRNS.MODULENR=5 THEN 0 ELSE 1 END AS TRTEMP, " +
@@ -211,7 +218,7 @@ public class AccountRepository {
                     "ON (INVFC.SALESMANREF = SLSMC.LOGICALREF) LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) " +
                     "ON (CTRNS.CLIENTREF = CLNTC.LOGICALREF) " +
                     "WHERE (CTRNS.BRANCH IN (0)) AND (CTRNS.DEPARTMENT IN (0)) " +
-                    "AND (CTRNS.DATE_ >= ? AND CTRNS.DATE_ <= ?)  " +
+                    "AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104))  " +
                     "ORDER BY CLNTC.CODE, CTRNS.DATE_, TRTEMP ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -318,7 +325,7 @@ public class AccountRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY SELECT CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
+            String sqlQuery = "SELECT CLNTC.CODE AS code, CLNTC.DEFINITION_ AS name, " +
                     "CONVERT(varchar, CTRNS.DATE_, 23) AS date, CTRNS.TRCODE, CTRNS.SIGN, " +
                     "ROUND(CTRNS.REPORTNET, 2) AS reportnet, CTRNS.TRANNO, CTRNS.LINEEXP, INVFC.FROMKASA, " +
                     "INVFC.FICHENO, CASE WHEN CTRNS.TRCODE=14 AND CTRNS.MODULENR=5 THEN 0 ELSE 1 END AS TRTEMP, " +
@@ -332,7 +339,7 @@ public class AccountRepository {
                     "ON (INVFC.SALESMANREF = SLSMC.LOGICALREF) LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) " +
                     "ON (CTRNS.CLIENTREF = CLNTC.LOGICALREF) " +
                     "WHERE (CTRNS.BRANCH IN (0)) AND (CTRNS.DEPARTMENT IN (0)) " +
-                    "AND (CTRNS.DATE_ >= ? AND CTRNS.DATE_ <= ?)  AND (CLNTC.CODE = ?) " +
+                    "AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104))  AND (CLNTC.CODE = ?) " +
                     "ORDER BY CLNTC.CODE, CTRNS.DATE_, TRTEMP ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -440,13 +447,12 @@ public class AccountRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "SET DATEFORMAT DMY " +
-                    "SELECT " +
+            String sqlQuery = "SELECT " +
                     "CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.FICHENO AS ficheno, " +
                     "LGMAIN.TRCODE AS trcode, LGMAIN.DEBIT AS debit, LGMAIN.CREDIT AS credit, " +
                     "LGMAIN.REPDEBIT AS repdebit, LGMAIN.REPCREDIT AS repcredit, LGMAIN.GENEXP1 AS definition " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFICHE LGMAIN " +
-                    "WHERE (LGMAIN.DATE_>=? AND LGMAIN.DATE_<=?) " +
+                    "WHERE (LGMAIN.DATE_ >= CONVERT(dateTime, ?, 104) AND LGMAIN.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "ORDER BY LGMAIN.TRCODE, LGMAIN.FICHENO, LGMAIN.LOGICALREF ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -485,14 +491,13 @@ public class AccountRepository {
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY " +
-                    "SELECT " +
+            String sqlQuery = "SELECT " +
                     "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CTRNS.CLIENTREF) AS code, " +
                     "(SELECT DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CTRNS.CLIENTREF) AS name, " +
                     "CTRNS.LINEEXP AS definition, CTRNS.SIGN AS sign, CTRNS.AMOUNT AS total, CTRNS.REPORTNET AS totalUsd " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS " +
-                    "WHERE (CTRNS.MODULENR = 5) " +
-                    "AND (CTRNS.DATE_>=?) AND (CTRNS.DATE_<=?) AND (CTRNS.TRANNO = ?) " +
+                    "WHERE (CTRNS.MODULENR = 5) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104)) " +
+                    "AND (CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) AND (CTRNS.TRANNO = ?) " +
                     "ORDER BY CTRNS.LINENR ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -523,31 +528,32 @@ public class AccountRepository {
     }
 
     /* ------------------------------------------ Отчет просроченных долгов ----------------------------------------------- */
-    public List<AccountAging> getAccountsAging(int firmno, int periodno, String date1, String date2, String date3, String date4, String date5) {
+    public List<AccountAging> getAccountsAging(int firmNo, int periodNo, String begDate, String endDate, String date1, String date2, String date3, String date4, String date5, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<AccountAging> accountAgings = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY " +
-                    "SELECT LOGICALREF as id,  CODE  as code, DEFINITION_  as name, TELCODES1 + '' + TELNRS1  as phone, " +
+            String sqlQuery = "SELECT LOGICALREF as id,  CODE  as code, DEFINITION_  as name, TELCODES1 + '' + TELNRS1  as phone, " +
                     
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (YEAR(DATE_) = ?) and (DATE_<=?) and (SIGN=0))),0) -" +
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (YEAR(DATE_) = ?) and (DATE_<=?) and (SIGN=1))),0) as balance, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (YEAR(DATE_) = CONVERT(dateTime, ?, 104)) and (DATE_<= CONVERT(dateTime, ?, 104)) and (SIGN=0))),0) -" +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (YEAR(DATE_) = CONVERT(dateTime, ?, 104)) and (DATE_ <= CONVERT(dateTime, ?, 104)) and (SIGN=1))),0) as balance, " +
 
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment1, " +
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment2, " +
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment3, " +
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment4, " +
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END >?) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) and (SIGN=1))),0) as payment5, " +
-                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <=?) AND (SIGN=1))),0) payment, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <= CONVERT(dateTime, ?, 104)) and (SIGN=1))),0) as payment1, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END > CONVERT(dateTime, ?, 104)) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <= CONVERT(dateTime, ?, 104)) and (SIGN=1))),0) as payment2, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END > CONVERT(dateTime, ?, 104)) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <= CONVERT(dateTime, ?, 104)) and (SIGN=1))),0) as payment3, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END > CONVERT(dateTime, ?, 104)) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <= CONVERT(dateTime, ?, 104)) and (SIGN=1))),0) as payment4, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END > CONVERT(dateTime, ?, 104)) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <= CONVERT(dateTime, ?, 104)) and (SIGN=1))),0) as payment5, " +
+                    "Isnull((Select Sum(AMOUNT) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) and (CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END <= CONVERT(dateTime, ?, 104)) AND (SIGN=1))),0) payment, " +
                     
                     "Isnull((Select CONVERT(varchar, Max(CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END ), 104) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) AND (TRCODE IN (1,20,2,21)))), '') as lastFinTrans, " +
                     "Isnull((Select CONVERT(varchar, Max(CASE WHEN CLF.DATE_ >= CLF.DATE_ THEN CLF.DATE_ ELSE CLF.DATE_ END ), 104) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE as CLF  Where ((1 = 1)  and (CANCELLED=0) AND (STATUS = 0) AND (CLIENTREF = CarKart.LOGICALREF) AND (TRCODE IN (37,38,32,33)))), '') as lastMatTrans " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD AS CarKart " +
                     "Where (CarKart.CardType in (1,2,3)) AND (CarKart.ACTIVE = 0) " +
-                    "AND (CarKart.LOGICALREF IN (Select CLIENTREF From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE)) " +
+                    "AND (CarKart.LOGICALREF IN (Select CLIENTREF From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE " +
+                    "WHERE (DATE_ >= CONVERT(dateTime, ?, 104)) AND (DATE_ <= CONVERT(dateTime, ?, 104)))) " +
+                    "AND (CODE LIKE ? OR DEFINITION_ LIKE ?) " +
                     "Order by CODE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
@@ -565,6 +571,10 @@ public class AccountRepository {
             statement.setString(12, date4);
             statement.setString(13, date5);
             statement.setString(14, date5);
+            statement.setString(15, begDate);
+            statement.setString(16, endDate);
+            statement.setString(17, "%" + filterName + "%");
+            statement.setString(18, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {

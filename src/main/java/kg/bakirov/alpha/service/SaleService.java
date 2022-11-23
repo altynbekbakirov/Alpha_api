@@ -18,8 +18,8 @@ public class SaleService {
         this.saleRepository = saleRepository;
     }
 
-    public List<SaleFiches> getSales(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
-        List<SaleFiches> sales = saleRepository.getSales(firmNo, periodNo, begDate, endDate, sourceIndex);
+    public List<SaleFiches> getSales(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String operationType, String filterCode) throws NotFoundException {
+        List<SaleFiches> sales = saleRepository.getSales(firmNo, periodNo, begDate, endDate, sourceIndex, operationType, filterCode);
         if (sales.size() == 0) throw new NotFoundException("No records");
         return sales;
     }
@@ -30,8 +30,8 @@ public class SaleService {
         return sales;
     }
 
-    public List<SaleTotal> getSalesTotal(int firmNo, int periodNo, String begDate, String endDate) throws NotFoundException {
-        List<SaleTotal> sales = saleRepository.getSalesTotal(firmNo, periodNo, begDate, endDate);
+    public List<SaleTotal> getSalesTotal(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) throws NotFoundException {
+        List<SaleTotal> sales = saleRepository.getSalesTotal(firmNo, periodNo, begDate, endDate, sourceIndex, filterName);
         if (sales.size() == 0) throw new NotFoundException("No records");
         return sales;
     }
@@ -48,8 +48,8 @@ public class SaleService {
         return sales;
     }
 
-    public List<SaleClientManager> getSalesManager(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
-        List<SaleClientManager> sales = saleRepository.getSalesManager(firmNo, periodNo, begDate, endDate, sourceIndex);
+    public List<SaleClientManager> getSalesManager(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) throws NotFoundException {
+        List<SaleClientManager> sales = saleRepository.getSalesManager(firmNo, periodNo, begDate, endDate, sourceIndex, filterName);
         if (sales.size() == 0) throw new NotFoundException("No records");
         return sales;
     }
@@ -60,8 +60,8 @@ public class SaleService {
         return sales;
     }
 
-    public List<SaleClient> getSalesClient(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
-        List<SaleClient> sales = saleRepository.getSalesClient(firmNo, periodNo, begDate, endDate, sourceIndex);
+    public List<SaleClient> getSalesClient(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) throws NotFoundException {
+        List<SaleClient> sales = saleRepository.getSalesClient(firmNo, periodNo, begDate, endDate, sourceIndex, filterName);
         if (sales.size() == 0) throw new NotFoundException("No records");
         return sales;
     }
@@ -78,15 +78,15 @@ public class SaleService {
         return sales;
     }
 
-    public List<SaleTable> getSalesTable(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
-        List<SaleTable> sales = saleRepository.getSalesTable(firmNo, periodNo, begDate, endDate, sourceIndex);
+    public List<SaleTable> getSalesTable(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) throws NotFoundException {
+        List<SaleTable> sales = saleRepository.getSalesTable(firmNo, periodNo, begDate, endDate, sourceIndex, filterName);
         if (sales.size() == 0) throw new NotFoundException("No records");
         return sales;
 
     }
 
-    public List<SaleDetail> getSalesDetail(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
-        List<SaleDetail> sales = saleRepository.getSalesDetail(firmNo, periodNo, begDate, endDate, sourceIndex);
+    public List<SaleDetail> getSalesDetail(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) throws NotFoundException {
+        List<SaleDetail> sales = saleRepository.getSalesDetail(firmNo, periodNo, begDate, endDate, sourceIndex, filterName);
         if (sales.size() == 0) throw new NotFoundException("No records");
         return sales;
     }

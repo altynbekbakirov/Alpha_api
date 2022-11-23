@@ -4,9 +4,11 @@ import kg.bakirov.alpha.helper.Utility;
 import kg.bakirov.alpha.model.sales.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
+
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_FIRM_NO;
 import static kg.bakirov.alpha.repository.MainRepository.GLOBAL_PERIOD;
 
@@ -24,14 +26,14 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Список документов ---------------------------------------------------- */
-    public List<SaleFiches> getSales(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<SaleFiches> getSales(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String operationType, String filterCode) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleFiches> saleFiches = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE AS trcode, " +
+            String sqlQuery = "SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE AS trcode, " +
                     "STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
                     "(SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS managercode, " +
                     "(SELECT DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS managername, " +
@@ -50,14 +52,17 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_WORKSTAT dWSp WITH(NOLOCK) ON (STFIC.DESTWSREF = dWSp.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39)) AND (STFIC.SOURCEINDEX = ?) " +
-                    "AND ((STFIC.DATE_>=?) AND (STFIC.DATE_<=?)) " +
+                    "WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (" + operationType + ")) AND (STFIC.SOURCEINDEX = ?) " +
+                    "AND ((STFIC.DATE_>= CONVERT(dateTime, ?, 104)) AND (STFIC.DATE_<= CONVERT(dateTime, ?, 104))) " +
+                    "AND (CLNTC.CODE LIKE ? OR CLNTC.DEFINITION_ LIKE ?) " +
                     "ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setInt(1, sourceindex);
-            statement.setString(2, begdate);
-            statement.setString(3, enddate);
+            statement.setInt(1, sourceIndex);
+            statement.setString(2, begDate);
+            statement.setString(3, endDate);
+            statement.setString(4, "%" + filterCode + "%");
+            statement.setString(5, "%" + filterCode + "%");
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -134,27 +139,31 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Итоговые цифры продаж ---------------------------------------------------- */
-    public List<SaleTotal> getSalesTotal(int firmno, int periodno, String begdate, String enddate) {
+    public List<SaleTotal> getSalesTotal(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleTotal> saleTotals = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
+            String sqlQuery = "SELECT ITEMS.CODE AS code, ITEMS.NAME AS name, ITEMS.STGRPCODE AS groupCode, " +
                     "SUM(STITOTS.PURAMNT) AS purchase_count, ROUND(SUM(STITOTS.PURCASH), 2) AS purchase_total, " +
                     "ROUND(SUM(STITOTS.PURCURR), 2) AS purchase_total_usd, SUM(STITOTS.SALAMNT) AS sale_count, " +
                     "ROUND(SUM(STITOTS.SALCASH), 2) AS sale_total, ROUND(SUM(STITOTS.SALCURR), 2) AS sale_total_usd " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVTOT STITOTS " +
                     "WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVTOT_I2) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS ON STITOTS.STOCKREF = ITEMS.LOGICALREF " +
-                    "WHERE (STITOTS.INVENNO = -1) AND (STITOTS.SALAMNT <> 0) " +
-                    "AND (STITOTS.DATE_ >= ? AND STITOTS.DATE_ <=  ?) " +
+                    "WHERE (STITOTS.INVENNO IN (?)) AND (STITOTS.SALAMNT <> 0) " +
+                    "AND (STITOTS.DATE_ >= CONVERT(dateTime, ?, 104) AND STITOTS.DATE_ <=  CONVERT(dateTime, ?, 104)) " +
+                    "AND (ITEMS.CODE LIKE ? OR ITEMS.NAME LIKE ?) " +
                     "GROUP BY ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE ORDER BY ITEMS.CODE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
+            statement.setInt(1, sourceIndex);
+            statement.setString(2, begDate);
+            statement.setString(3, endDate);
+            statement.setString(4, "%" + filterName + "%");
+            statement.setString(5, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -179,15 +188,15 @@ public class SaleRepository {
     }
 
 
-    /* ------------------------------------------ Распределение продаж по месяцам ---------------------------------------------------- */
-    public List<SaleMonth> getSalesMonth(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    /* ------------------------------------------ Продажи по месяцам ---------------------------------------------------- */
+    public List<SaleMonth> getSalesMonth(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleMonth> saleMonths = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
+            String sqlQuery = "SELECT ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
                     "ISNULL((SELECT ITMSM.SALES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
                     "WHERE (ITMSM.STOCKREF = ITEMS.LOGICALREF) AND (ITMSM.INVENNO = 0) AND ((ITMSM.MONTH_ = 1) )), 0) AS jan, " +
                     "ISNULL((SELECT ITMSM.SALES_AMOUNT FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STINVENS ITMSM  " +
@@ -222,19 +231,19 @@ public class SaleRepository {
                     "WHERE (ITEMS.CARDTYPE) <> 22 AND (ITEMS.ACTIVE = 0) " +
                     "AND (ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE WHERE ((TRCODE in (1,2,3,13,14,25,50))) " +
                     "AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
+                    "AND (CANCELLED=0) AND ((DATE_>= CONVERT(dateTime, ?, 104)) AND (DATE_<= CONVERT(dateTime, ?, 104))) and  ((SOURCEINDEX = ?) AND (IOCODE IN (1,2)))),0) - " +
                     "ISNULL ((Select SUM(AMOUNT*UINFO2) From LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE " +
                     "WHERE ((TRCODE in (6,7,8,11,12,25,51))) AND (STOCKREF=Items.LOGICALREF) " +
-                    "AND (CANCELLED=0) AND ((DATE_>=?) AND (DATE_<=?)) and  ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)<>0) " +
+                    "AND (CANCELLED=0) AND ((DATE_>= CONVERT(dateTime, ?, 104)) AND (DATE_<= CONVERT(dateTime, ?, 104))) and  ((SOURCEINDEX = ?) AND (IOCODE IN (3,4)))),0)<>0) " +
                     "Order BY code";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
-            statement.setString(4, begdate);
-            statement.setString(5, enddate);
-            statement.setInt(6, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
+            statement.setString(4, begDate);
+            statement.setString(5, endDate);
+            statement.setInt(6, sourceIndex);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -269,15 +278,15 @@ public class SaleRepository {
     }
 
 
-    /* ------------------------------------------ Распределение продаж по менеджерам ---------------------------------------------------- */
-    public List<SaleClientManager> getSalesManager(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    /* ------------------------------------------ Продажи по менеджерам ---------------------------------------------------- */
+    public List<SaleClientManager> getSalesManager(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleClientManager> saleClientManagers = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT (SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_code, " +
+            String sqlQuery = "SELECT (SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_code, " +
                     "(SELECT DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_name, " +
                     "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
                     "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
@@ -287,18 +296,20 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STRNS.SOURCEINDEX IN (?)) AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) " +
-                    "AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
-                    "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
+                    "WHERE (STRNS.SOURCEINDEX IN (?)) AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
-                    "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
-                    "GROUP BY CLNTC.PARENTCLREF, STRNS.TRCODE " +
+                    "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) ";
+            if (!filterName.isEmpty()) {
+                sqlQuery += "AND (CLNTC.PARENTCLREF = (SELECT TOP 1 LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD " +
+                        "WHERE CODE LIKE '%" + filterName + "%' OR DEFINITION_ LIKE '%" + filterName + "%'))";
+            }
+            sqlQuery += "GROUP BY CLNTC.PARENTCLREF, STRNS.TRCODE " +
                     "ORDER BY client_code ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setInt(1, sourceindex);
-            statement.setString(2, begdate);
-            statement.setString(3, enddate);
+            statement.setInt(1, sourceIndex);
+            statement.setString(2, begDate);
+            statement.setString(3, endDate);
             ResultSet resultSet = statement.executeQuery();
 
             String currentCode = null;
@@ -378,15 +389,15 @@ public class SaleRepository {
         return saleClientManagers;
     }
 
-    /* ------------------------------------------ Распределение продаж по одному менеджеру ---------------------------------------------------- */
-    public List<SaleClientManager> getSalesManagerOne(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
+    /* ------------------------------------------ Продажи по одному менеджеру ---------------------------------------------------- */
+    public List<SaleClientManager> getSalesManagerOne(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String code) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleClientManager> saleClientManagers = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT (SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_code, " +
+            String sqlQuery = "SELECT (SELECT CODE FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_code, " +
                     "(SELECT DEFINITION_ FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE LOGICALREF = CLNTC.PARENTCLREF) AS client_name, " +
                     "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
                     "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
@@ -396,7 +407,7 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STRNS.SOURCEINDEX IN (?)) AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) " +
+                    "WHERE (STRNS.SOURCEINDEX IN (?)) AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) " +
                     "AND (CLNTC.PARENTCLREF = (SELECT LOGICALREF FROM LG_" + GLOBAL_FIRM_NO + "_CLCARD WHERE CODE = ?)) " +
                     "AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
@@ -406,9 +417,9 @@ public class SaleRepository {
                     "ORDER BY client_code ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setInt(1, sourceindex);
-            statement.setString(2, begdate);
-            statement.setString(3, enddate);
+            statement.setInt(1, sourceIndex);
+            statement.setString(2, begDate);
+            statement.setString(3, endDate);
             statement.setString(4, code);
             ResultSet resultSet = statement.executeQuery();
 
@@ -490,16 +501,16 @@ public class SaleRepository {
     }
 
 
-    /* ------------------------------------------ Распределение продаж по контрагентам ---------------------------------------------------- */
-    public List<SaleClient> getSalesClient(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    /* ------------------------------------------ Продажи по контрагентам ---------------------------------------------------- */
+    public List<SaleClient> getSalesClient(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleClient> saleClients = new ArrayList<>();
         Map<String, SaleClient> map = new TreeMap<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
+            String sqlQuery = "SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
                     "ITMSC.CODE AS item_code, ITMSC.NAME AS item_name, ITMSC.STGRPCODE AS item_group, " +
                     "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
                     "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
@@ -513,14 +524,17 @@ public class SaleRepository {
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND  (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND  (STRNS.SOURCEINDEX = ?) " +
+                    "AND (CLNTC.CODE LIKE ? OR CLNTC.DEFINITION_ LIKE ?) " +
                     "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, ITMSC.CODE, ITMSC.NAME, ITMSC.STGRPCODE, STRNS.TRCODE " +
                     "ORDER BY CLNTC.CODE, ITMSC.CODE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
+            statement.setString(4, "%" + filterName + "%");
+            statement.setString(5, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             double count, countRet, total, totalUsd, totalRet, totalRetUsd;
@@ -577,15 +591,14 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Перечень документов по контрагентам ---------------------------------------------------- */
-    public List<SaleClientFiches> getSalesClientFiches(int firmno, int periodno, String begdate, String enddate, int sourceindex, String code) {
+    public List<SaleClientFiches> getSalesClientFiches(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String code) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleClientFiches> saleClients = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY " +
-                    "SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE  trcode, " +
+            String sqlQuery = "SELECT STFIC.LOGICALREF AS id, STFIC.TRCODE  trcode, " +
                     "    STFIC.FICHENO AS ficheno, CONVERT(varchar, STFIC.DATE_, 23) AS date, " +
                     "    ISNULL(CLNTC.CODE, 0) as clientcode, ISNULL(CLNTC.DEFINITION_, 0) as clientname, " +
                     "    STFIC.GROSSTOTAL AS gross, STFIC.TOTALDISCOUNTS AS discounts, STFIC.TOTALEXPENSES AS expenses, " +
@@ -600,14 +613,14 @@ public class SaleRepository {
                     "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_DISTORD DISTORD WITH(NOLOCK) ON (STFIC.DISTORDERREF = DISTORD.LOGICALREF) " +
                     "    LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STFIC.PROJECTREF  =  PROJECT.LOGICALREF) " +
                     "    WHERE (STFIC.CANCELLED = 0) AND (STFIC.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39)) " +
-                    "    AND ((STFIC.DATE_>=?) AND (STFIC.DATE_<=?)) AND (STFIC.SOURCEINDEX = ?) " +
+                    "    AND ((STFIC.DATE_>= CONVERT(dateTime, ?, 104)) AND (STFIC.DATE_<= CONVERT(dateTime, ?, 104))) AND (STFIC.SOURCEINDEX = ?) " +
                     "    AND (CLNTC.CODE = ?) " +
                     "    ORDER BY STFIC.DATE_, STFIC.FTIME, STFIC.TRCODE, STFIC.FICHENO ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
             statement.setString(4, code);
             ResultSet resultSet = statement.executeQuery();
 
@@ -637,15 +650,15 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Топ продаж по контрагентам ---------------------------------------------------- */
-    public List<SaleClientTop> getSalesClientTop(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<SaleClientTop> getSalesClientTop(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleClientTop> saleClientTops = new ArrayList<>();
         Map<String, SaleClientTop> map = new TreeMap<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
+            String sqlQuery = "SELECT CLNTC.CODE AS client_code, CLNTC.DEFINITION_ AS client_name, " +
                     "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
                     "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, STRNS.TRCODE AS trcode " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS WITH(NOLOCK) " +
@@ -658,14 +671,14 @@ public class SaleRepository {
                     "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
                     "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND  (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND  (STRNS.SOURCEINDEX = ?) " +
                     "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, STRNS.TRCODE " +
                     "ORDER BY CLNTC.CODE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -724,15 +737,15 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Сводная таблица продаж ---------------------------------------------------- */
-    public List<SaleTable> getSalesTable(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<SaleTable> getSalesTable(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleTable> saleTables = new ArrayList<>();
         Map<Integer, SaleTable> map_month = new HashMap<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = " Set DateFormat DMY SELECT MONTH(INVFC.DATE_) AS date, INVFC.TRCODE, STRNS.LINETYPE, " +
+            String sqlQuery = "SELECT MONTH(INVFC.DATE_) AS date, INVFC.TRCODE, STRNS.LINETYPE, " +
                     "SUM(ROUND(ISNULL(STRNS.TOTAL, 0) , 2)) AS total, " +
                     "SUM(ROUND(ISNULL(STRNS.LINENET, 0) ,2)) AS net, " +
                     "SUM(ROUND(ISNULL(STRNS.TOTAL / NULLIF(STRNS.REPORTRATE, 0), 0), 2)) AS total_usd, " +
@@ -743,17 +756,20 @@ public class SaleRepository {
                     "LEFT OUTER JOIN  LG_SLSMAN WITH(NOLOCK) ON (STRNS.SALESMANREF = LG_SLSMAN.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF = ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    " WHERE ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
+                    "WHERE ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (INVFC.DEPARTMENT IN (0)) AND (INVFC.BRANCH IN (0)) AND (INVFC.FACTORYNR IN (0)) " +
                     "AND (INVFC.STATUS IN (0,1)) AND (NOT(INVFC.TRCODE IN(5, 10)) ) " +
-                    "AND (INVFC.CANCELLED =  0 ) AND (INVFC.GRPCODE = 2) " +
-                    "GROUP BY INVFC.DATE_, INVFC.TRCODE, STRNS.LINETYPE " +
+                    "AND (INVFC.CANCELLED =  0 ) AND (INVFC.GRPCODE = 2) ";
+            if (!filterName.isEmpty()) {
+                sqlQuery += "AND (CLNTC.CODE LIKE '%" + filterName + "%' OR CLNTC.DEFINITION_ LIKE '%" + filterName + "%') ";
+            }
+            sqlQuery += "GROUP BY INVFC.DATE_, INVFC.TRCODE, STRNS.LINETYPE " +
                     "ORDER BY INVFC.DATE_, INVFC.TRCODE, STRNS.LINETYPE ";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
             ResultSet resultSet = statement.executeQuery();
 
             double total = 0;
@@ -816,21 +832,20 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Подробный отчет продаж ---------------------------------------------------- */
-    public List<SaleDetail> getSalesDetail(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<SaleDetail> getSalesDetail(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleDetail> saleDetails = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY " +
-                    "Select ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
+            String sqlQuery = "Select ITEMS.CODE, ITEMS.NAME, ITEMS.STGRPCODE, " +
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.AMOUNT*(STRNS.UINFO2/STRNS.UINFO1)) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) " +
                     "AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) " +
                     "AND (STRNS.LPRODSTAT <> 2) AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.TRCODE IN (2,3)) AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)), 0),2) as iade, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) " +
@@ -840,14 +855,14 @@ public class SaleRepository {
                     "AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) " +
                     "AND ((STRNS.TRCODE IN (2,3)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 2)) AND STRNS.TRCODE IN (2,3))) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)),0),2) as iade_tutari_usd, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.OUTCOSTCURR*STRNS.UINFO2/STRNS.UINFO1*STRNS.AMOUNT) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) " +
                     "AND (STRNS.LPRODSTAT <> 2) AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND (STRNS.TRCODE IN (2,3)) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)  ), 0), 2) as iade_maliyeti_usd, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.AMOUNT*(STRNS.UINFO2/STRNS.UINFO1)) " +
@@ -855,7 +870,7 @@ public class SaleRepository {
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) " +
                     "AND (STRNS.LPRODSTAT <> 2) AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND ((STRNS.IOCODE IN (3,4))) " +
                     "AND ((STRNS.TRCODE IN (7,8)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 3)) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND STRNS.TRCODE IN (7,8)  )) AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)), 0), 2) as net_satis, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) \n" +
@@ -865,38 +880,40 @@ public class SaleRepository {
                     "AND (STRNS.REPORTRATE > 0.0" + GLOBAL_FIRM_NO + ") AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND ((STRNS.IOCODE IN (3,4))) " +
                     "AND ((STRNS.TRCODE IN (7,8)) OR (((STRNS.TRCODE = 25) AND (STRNS.IOCODE = 3)) AND STRNS.TRCODE IN (7,8)  )) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?) " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND (STRNS.SOURCEINDEX = ?) " +
                     "AND (STRNS.CLIENTREF = CLNTC.LOGICALREF)), 0), 2) as satis_tutari_usd, " +
 
                     "ROUND(ISNULL((SELECT SUM(((2.5-STRNS.IOCODE)/ABS(2.5-STRNS.IOCODE)) * STRNS.OUTCOSTCURR*STRNS.UINFO2/STRNS.UINFO1*STRNS.AMOUNT) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
                     "WHERE (STRNS.STOCKREF = ITEMS.LOGICALREF) AND (STRNS.CANCELLED = 0) AND (STRNS.STFICHEREF <> 0) AND (STRNS.LPRODSTAT <> 2) " +
                     "AND (STRNS.LINETYPE IN (0, 1, 5, 6, 8, 9)) AND (STRNS.TRCODE IN (7,8)) AND (STRNS.CLIENTREF = CLNTC.LOGICALREF) " +
-                    "AND ((STRNS.DATE_>=?) AND (STRNS.DATE_<=?)) AND (STRNS.SOURCEINDEX = ?)), 0), 2) as  satis_maliyeti_usd " +
+                    "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND (STRNS.SOURCEINDEX = ?)), 0), 2) as  satis_maliyeti_usd " +
 
                     "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS As ITEMS " +
-                    "WHERE (CARDTYPE <> 22) AND (LOGICALREF IN (SELECT STOCKREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE))" +
+                    "WHERE (CARDTYPE <> 22) AND (ITEMS.CODE LIKE ? OR ITEMS.NAME LIKE ?) AND (LOGICALREF IN (SELECT STOCKREF FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE))" +
                     "ORDER BY CODE";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
-            statement.setString(4, begdate);
-            statement.setString(5, enddate);
-            statement.setInt(6, sourceindex);
-            statement.setString(7, begdate);
-            statement.setString(8, enddate);
-            statement.setInt(9, sourceindex);
-            statement.setString(10, begdate);
-            statement.setString(11, enddate);
-            statement.setInt(12, sourceindex);
-            statement.setString(13, begdate);
-            statement.setString(14, enddate);
-            statement.setInt(15, sourceindex);
-            statement.setString(16, begdate);
-            statement.setString(17, enddate);
-            statement.setInt(18, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
+            statement.setString(4, begDate);
+            statement.setString(5, endDate);
+            statement.setInt(6, sourceIndex);
+            statement.setString(7, begDate);
+            statement.setString(8, endDate);
+            statement.setInt(9, sourceIndex);
+            statement.setString(10, begDate);
+            statement.setString(11, endDate);
+            statement.setInt(12, sourceIndex);
+            statement.setString(13, begDate);
+            statement.setString(14, endDate);
+            statement.setInt(15, sourceIndex);
+            statement.setString(16, begDate);
+            statement.setString(17, endDate);
+            statement.setInt(18, sourceIndex);
+            statement.setString(19, "%" + filterName + "%");
+            statement.setString(20, "%" + filterName + "%");
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -932,21 +949,19 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Ежедневные продажи ---------------------------------------------------- */
-    public List<SaleDaily> getSalesDaily(int firmno, int periodno, String begDate, String endDate, int sourceIndex) {
+    public List<SaleDaily> getSalesDaily(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleDaily> saleClients = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
 
-            String sqlQuery = "Set DateFormat DMY " +
-                    "SELECT  CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.TRCODE AS trcode, " +
-                    "SUM(LGMAIN.NETTOTAL) AS net_total, " +
-                    "SUM(LGMAIN.REPORTNET) AS report_net " +
+            String sqlQuery = "SELECT  CONVERT(varchar, LGMAIN.DATE_, 23) AS date, LGMAIN.TRCODE AS trcode, " +
+                    "SUM(LGMAIN.NETTOTAL) AS net_total, SUM(LGMAIN.REPORTNET) AS report_net " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE LGMAIN  " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC WITH(NOLOCK) ON (LGMAIN.CLIENTREF  =  CLNTC.LOGICALREF) " +
-                    "WHERE (LGMAIN.GRPCODE = 2) " +
-                    "AND ((LGMAIN.DATE_>=?) AND (LGMAIN.DATE_<=?)) AND (LGMAIN.SOURCEINDEX=?) " +
+                    "WHERE (LGMAIN.GRPCODE = 2) AND ((LGMAIN.DATE_>= CONVERT(dateTime, ?, 104)) " +
+                    "AND (LGMAIN.DATE_<= CONVERT(dateTime, ?, 104))) AND (LGMAIN.SOURCEINDEX=?) " +
                     "GROUP BY LGMAIN.DATE_, LGMAIN.TRCODE " +
                     "ORDER BY LGMAIN.DATE_ DESC";
 
