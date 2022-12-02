@@ -23,7 +23,8 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<?> products(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProducts(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
+            return ResponseEntity.ok(productService.getProducts(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex(), response.getFilterName()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -94,7 +95,8 @@ public class ProductController {
     @PostMapping("/price")
     public ResponseEntity<?> productsPrice(@RequestBody ResponseModel response) {
         try {
-            return ResponseEntity.ok(productService.getProductsPrice(response.getFirmNo(), response.getPeriodNo(), response.getBegDate(), response.getEndDate()));
+            return ResponseEntity.ok(productService.getProductsPrice(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate(), response.getSourceIndex()));
         } catch (NotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

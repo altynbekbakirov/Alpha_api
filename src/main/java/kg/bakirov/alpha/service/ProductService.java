@@ -54,8 +54,8 @@ public class ProductService {
         return productTransactionList;
     }
 
-    public List<ProductPrice> getProductsPrice(int firmNo, int periodNo, String begDate, String endDate) throws NotFoundException {
-        List<ProductPrice> productPriceList = productRepository.getProductPrice(firmNo, periodNo, begDate, endDate);
+    public List<ProductPrice> getProductsPrice(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) throws NotFoundException {
+        List<ProductPrice> productPriceList = productRepository.getProductPrice(firmNo, periodNo, begDate, endDate, sourceIndex);
         if (productPriceList.size() == 0) throw new NotFoundException("No records");
         return productPriceList;
     }

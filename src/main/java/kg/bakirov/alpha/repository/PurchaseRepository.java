@@ -187,9 +187,9 @@ public class PurchaseRepository {
 
 
     /* ------------------------------------------ Распределение закупок по месяцам ---------------------------------------------------- */
-    public List<PurchaseMonth> getPurchasesMonth(int firmno, int periodno, String begdate, String enddate, int sourceindex) {
+    public List<PurchaseMonth> getPurchasesMonth(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<PurchaseMonth> purchaseMonths = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
@@ -235,12 +235,12 @@ public class PurchaseRepository {
                     "Order BY code";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
-            statement.setInt(3, sourceindex);
-            statement.setString(4, begdate);
-            statement.setString(5, enddate);
-            statement.setInt(6, sourceindex);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            statement.setInt(3, sourceIndex);
+            statement.setString(4, begDate);
+            statement.setString(5, endDate);
+            statement.setInt(6, sourceIndex);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -294,9 +294,7 @@ public class PurchaseRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STRNS.SOURCEINDEX IN (0)) AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
-                    "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
-                    "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
+                    "WHERE (STFIC.STATUS IN (0,1)) AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (1,5,6,10,26,30,31,32,33,34) ) AND (STFIC.CANCELLED = 0) " +
                     "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND  (STRNS.SOURCEINDEX = ?)" +
                     "AND (CLNTC.CODE LIKE ? OR CLNTC.DEFINITION_ LIKE ?) " +

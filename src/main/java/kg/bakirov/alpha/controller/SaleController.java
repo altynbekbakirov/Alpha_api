@@ -105,6 +105,18 @@ public class SaleController {
         }
     }
 
+    @PostMapping("/ware")
+    public ResponseEntity<?> salesWares(@RequestBody ResponseSale1 response) {
+        try {
+            return ResponseEntity.ok(saleService.getWareTotals(response.getFirmNo(), response.getPeriodNo(),
+                    response.getBegDate(), response.getEndDate()));
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/client")
     public ResponseEntity<?> salesClient(@RequestBody ResponseSale1 response) {
         try {

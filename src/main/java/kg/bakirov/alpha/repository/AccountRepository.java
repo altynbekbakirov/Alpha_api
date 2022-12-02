@@ -35,8 +35,7 @@ public class AccountRepository {
 
                     "ROUND(ISNULL((SELECT SUM((1-CTRNS.SIGN)*CTRNS.REPORTNET) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
-                    "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "AND (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
+                    "WHERE (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.CANCELLED = 0) AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0)+ " +
                     "ISNULL((SELECT SUM(((1-CTRNS.SIGN)+(CTRNS.SIGN*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
@@ -49,15 +48,13 @@ public class AccountRepository {
 
                     "ROUND(ISNULL((SELECT SUM(CTRNS.SIGN*CTRNS.REPORTNET) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC " +
-                    "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
+                    "WHERE (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) AND (CTRNS.CANCELLED = 0) " +
                     "AND (CTRNS.MODULENR <> 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0) + " +
                     "ISNULL((SELECT SUM((CTRNS.SIGN+((1-CTRNS.SIGN)*INVFC.FROMKASA))*CTRNS.REPORTNET) " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_CLFLINE CTRNS, " +
                     "LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC, LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_INVOICE INVFC " +
-                    "WHERE CTRNS.DEPARTMENT IN (0) and CTRNS.BRANCH IN (0) " +
-                    "and (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
+                    "WHERE (CLNTC.CODE LIKE CLCARD.CODE) AND (CTRNS.DATE_ >= CONVERT(dateTime, ?, 104) AND CTRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
                     "AND (CTRNS.CLIENTREF = CLCARD.LOGICALREF) " +
                     "AND (CTRNS.SOURCEFREF = INVFC.LOGICALREF) AND (INVFC.CANCELLED = 0) " +
                     "AND (CTRNS.MODULENR = 4) AND (NOT (CTRNS.TRCODE IN (12,35,40)))), 0), 2) as alacak  " +

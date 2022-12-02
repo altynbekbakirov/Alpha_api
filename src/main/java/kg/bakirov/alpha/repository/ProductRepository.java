@@ -60,11 +60,11 @@ public class ProductRepository {
                                 resultSet.getString("groupcode"),
                                 resultSet.getDouble("purchaseprice"),
                                 resultSet.getDouble("saleprice"),
-                                resultSet.getInt("puramount"),
+                                resultSet.getDouble("puramount"),
                                 resultSet.getDouble("purcurr"),
-                                resultSet.getInt("salamount"),
+                                resultSet.getDouble("salamount"),
                                 resultSet.getDouble("salcurr"),
-                                resultSet.getInt("onhand"),
+                                resultSet.getDouble("onhand"),
                                 resultSet.getDouble("purchaseprice") * resultSet.getInt("onhand"),
                                 resultSet.getDouble("saleprice") * resultSet.getInt("onhand")
                         )
@@ -367,9 +367,9 @@ public class ProductRepository {
 
 
     /* ---------------------------------------- Прайс лист ------------------------------------------------ */
-    public List<ProductPrice> getProductPrice(int firmno, int periodno, String begdate, String enddate) {
+    public List<ProductPrice> getProductPrice(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<ProductPrice> itemsPriceList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
@@ -379,14 +379,13 @@ public class ProductRepository {
                     "ISNULL((SELECT USLINE.CODE FROM LG_" + GLOBAL_FIRM_NO + "_UNITSETL USLINE WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_UNITSETL_I4) " +
                     "WHERE (USLINE.UNITSETREF = ITEMS.UNITSETREF) AND (USLINE.MAINUNIT = 1)), 0) AS unit, " +
                     "ISNULL((SELECT TOP 1 PRICE FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST prclist WHERE ((ITEMS.LOGICALREF = prclist.CARDREF) " +
-                    "AND (PTYPE = 2) AND (BEGDATE <= CONVERT(dateTime, ?, 104)) AND (ENDDATE >= CONVERT(dateTime, ?, 104)))), 0) AS price " +
+                    "AND (PTYPE = 2))), 0) AS price " +
                     "FROM LG_" + GLOBAL_FIRM_NO + "_ITEMS ITEMS LEFT JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD +
-                    "_GNTOTST GNSTITOT WITH(NOLOCK, INDEX = I" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_GNTOTST_I1) " +
-                    "ON (GNSTITOT.STOCKREF = ITEMS.LOGICALREF) WHERE ((GNSTITOT.INVENNO = -1) AND (GNSTITOT.ONHAND > 0)) ORDER BY ITEMS.CODE";
+                    "_GNTOTST GNSTITOT " +
+                    "ON (GNSTITOT.STOCKREF = ITEMS.LOGICALREF) WHERE ((GNSTITOT.INVENNO = ?) AND (GNSTITOT.ONHAND > 0)) ORDER BY ITEMS.CODE";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
+            statement.setInt(1, sourceIndex);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -426,12 +425,10 @@ public class ProductRepository {
                     "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
                     "WHERE (LGMAIN.ACTIVE = 0) AND (LGMAIN.MTRLTYPE = 0) " +
-                    "AND (LGMAIN.BEGDATE <= CONVERT(dateTime, ?, 104)) AND (LGMAIN.ENDDATE >= CONVERT(dateTime, ?, 104)) " +
+//                    "AND (LGMAIN.BEGDATE <= CONVERT(dateTime, ?, 104)) AND (LGMAIN.ENDDATE >= CONVERT(dateTime, ?, 104)) " +
                     "ORDER BY LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
-            statement.setString(1, begdate);
-            statement.setString(2, enddate);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
@@ -472,13 +469,11 @@ public class ProductRepository {
                     "FROM LG_" + GLOBAL_FIRM_NO + "_PRCLIST LGMAIN " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (LGMAIN.CARDREF  =  ITMSC.LOGICALREF) " +
                     "WHERE (LGMAIN.ACTIVE = 0) AND ( ITMSC.CODE = ?) AND (LGMAIN.MTRLTYPE = 0) " +
-                    "AND (LGMAIN.BEGDATE <= CONVERT(dateTime, ?, 104)) AND (LGMAIN.ENDDATE >= CONVERT(dateTime, ?, 104)) " +
+//                    "AND (LGMAIN.BEGDATE <= CONVERT(dateTime, ?, 104)) AND (LGMAIN.ENDDATE >= CONVERT(dateTime, ?, 104)) " +
                     "ORDER BY LGMAIN.PTYPE, LGMAIN.CARDREF, LGMAIN.MTRLTYPE, LGMAIN.CLIENTCODE, LGMAIN.LOGICALREF";
 
             PreparedStatement statement = connection.prepareStatement(sqlQuery);
             statement.setString(1, code);
-            statement.setString(2, begdate);
-            statement.setString(3, enddate);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {

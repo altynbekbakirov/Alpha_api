@@ -92,9 +92,9 @@ public class SaleRepository {
 
 
     /* ------------------------------------------ Содержимое документа ---------------------------------------------------- */
-    public List<SaleFiche> getFiche(int firmno, int periodno, int fiche) {
+    public List<SaleFiche> getFiche(int firmNo, int periodNo, int fiche) {
 
-        utility.CheckCompany(firmno, periodno);
+        utility.CheckCompany(firmNo, periodNo);
         List<SaleFiche> ficheList = new ArrayList<>();
 
         try (Connection connection = dataSource.getConnection()) {
@@ -501,6 +501,101 @@ public class SaleRepository {
     }
 
 
+    /* ------------------------------------------ Продажи по складам ---------------------------------------------------- */
+    public List<SaleWare> getWareTotals(int firmNo, int periodNo, String begDate, String endDate) {
+
+        utility.CheckCompany(firmNo, periodNo);
+        List<SaleWare> saleWares = new ArrayList<>();
+
+        try (Connection connection = dataSource.getConnection()) {
+
+            String sqlQuery = "SELECT " +
+                    "(SELECT NR FROM L_CAPIWHOUSE  WHERE NR = STRNS.SOURCEINDEX) AS ware_code, " +
+                    "(SELECT NAME FROM L_CAPIWHOUSE  WHERE NR = STRNS.SOURCEINDEX) AS ware_name," +
+                    "SUM(STRNS.AMOUNT) AS amount, ROUND(SUM(STRNS.LINENET), 2) AS total, " +
+                    "ROUND(ISNULL(SUM(STRNS.LINENET / NULLIF(STRNS.REPORTRATE, 0)), 0), 2) AS total_usd, " +
+                    "STRNS.TRCODE AS trcode " +
+                    "FROM LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STLINE STRNS " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_CLCARD CLNTC ON (CLNTC.LOGICALREF  =  STRNS.CLIENTREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_" + GLOBAL_PERIOD + "_STFICHE STFIC ON (STRNS.STFICHEREF  =  STFIC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_EMUHACC GLACC ON (STRNS.ACCOUNTREF  =  GLACC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_SLSMAN SLSMC ON (STRNS.SALESMANREF  =  SLSMC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_EMCENTER COSTC ON (STRNS.CENTERREF  =  COSTC.LOGICALREF) " +
+                    "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
+                    "WHERE (STFIC.STATUS IN (0,1)) AND (ITMSC.CARDTYPE <> 22 ) " +
+                    "AND (STRNS.DATE_ >= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_ <= CONVERT(dateTime, ?, 104)) " +
+                    "AND (STFIC.CANCELLED = 0) AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) " +
+                    "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39)) " +
+                    "AND (STRNS.LINETYPE NOT IN (2,3)) " +
+                    "GROUP BY STRNS.SOURCEINDEX, STRNS.TRCODE " +
+                    "ORDER BY STRNS.SOURCEINDEX, STRNS.TRCODE ";
+
+            PreparedStatement statement = connection.prepareStatement(sqlQuery);
+            statement.setString(1, begDate);
+            statement.setString(2, endDate);
+            ResultSet resultSet = statement.executeQuery();
+
+            int currentCode = -1;
+            double itemAmount = 0, itemTotal = 0, itemTotalUsd = 0, itemAmountRet = 0, itemTotalRet = 0, itemTotalUsdRet = 0;
+            HashMap<Integer, SaleWare> map = new HashMap<>();
+
+            while (resultSet.next()) {
+                if (resultSet.getInt("ware_code") == currentCode) {
+                    if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                        itemAmount += resultSet.getDouble("amount");
+                        itemTotal += resultSet.getDouble("total");
+                        itemTotalUsd += resultSet.getDouble("total_usd");
+                    } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                        itemAmountRet += -resultSet.getDouble("amount");
+                        itemTotalRet += -resultSet.getDouble("total");
+                        itemTotalUsdRet += -resultSet.getDouble("total_usd");
+                    }
+                } else {
+                    if (resultSet.getDouble("trcode") == 7 || resultSet.getDouble("trcode") == 8) {
+                        itemAmount = resultSet.getDouble("amount");
+                        itemTotal = resultSet.getDouble("total");
+                        itemTotalUsd = resultSet.getDouble("total_usd");
+                        itemAmountRet = 0.0;
+                        itemTotalRet = 0.0;
+                        itemTotalUsdRet = 0.0;
+                    } else if (resultSet.getDouble("trcode") == 2 || resultSet.getDouble("trcode") == 3) {
+                        itemAmount = 0.0;
+                        itemTotal = 0.0;
+                        itemTotalUsd = 0.0;
+                        itemAmountRet = -resultSet.getDouble("amount");
+                        itemTotalRet = -resultSet.getDouble("total");
+                        itemTotalUsdRet = -resultSet.getDouble("total_usd");
+                    }
+                }
+
+                SaleWare client = new SaleWare();
+                client.setWareCode(resultSet.getInt("ware_code"));
+                client.setWareName(resultSet.getString("ware_name"));
+                client.setItemAmount(itemAmount);
+                client.setItemTotal(itemTotal);
+                client.setItemTotalUsd(itemTotalUsd);
+                client.setItemAmountRet(itemAmountRet);
+                client.setItemTotalRet(itemTotalRet);
+                client.setItemTotalUsdRet(itemTotalUsdRet);
+
+                currentCode = resultSet.getInt("ware_code");
+                map.put(resultSet.getInt("ware_code"), client);
+            }
+
+            for (Map.Entry<Integer, SaleWare> entry : map.entrySet()) {
+                saleWares.add(entry.getValue());
+            }
+
+            Collections.sort(saleWares);
+
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+        }
+        return saleWares;
+    }
+
+
     /* ------------------------------------------ Продажи по контрагентам ---------------------------------------------------- */
     public List<SaleClient> getSalesClient(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) {
 
@@ -520,9 +615,7 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STRNS.SOURCEINDEX IN (0)) AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
-                    "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
-                    "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
+                    "WHERE (STFIC.STATUS IN (0,1)) AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
                     "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND  (STRNS.SOURCEINDEX = ?) " +
                     "AND (CLNTC.CODE LIKE ? OR CLNTC.DEFINITION_ LIKE ?) " +
@@ -667,9 +760,7 @@ public class SaleRepository {
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_ITEMS ITMSC WITH(NOLOCK) ON (STRNS.STOCKREF  =  ITMSC.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_SHIPINFO SHPINF WITH(NOLOCK) ON (STFIC.SHIPINFOREF  =  SHPINF.LOGICALREF) " +
                     "LEFT OUTER JOIN LG_" + GLOBAL_FIRM_NO + "_PROJECT PROJECT WITH(NOLOCK) ON (STRNS.PROJECTREF  =  PROJECT.LOGICALREF) " +
-                    "WHERE (STRNS.SOURCEINDEX IN (0)) AND (STFIC.DEPARTMENT IN (0)) AND (STFIC.BRANCH IN (0)) " +
-                    "AND (STFIC.FACTORYNR IN (0)) AND (STFIC.STATUS IN (0,1)) " +
-                    "AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
+                    "WHERE (STFIC.STATUS IN (0,1)) AND (STRNS.CPSTFLAG <> 1) AND (STRNS.DETLINE <> 1) AND (STRNS.LINETYPE NOT IN (2,3)) " +
                     "AND (STRNS.TRCODE IN (2,3,4,7,8,9,35,36,37,38,39) ) AND (STFIC.CANCELLED = 0) " +
                     "AND ((STRNS.DATE_>= CONVERT(dateTime, ?, 104)) AND (STRNS.DATE_<= CONVERT(dateTime, ?, 104))) AND  (STRNS.SOURCEINDEX = ?) " +
                     "GROUP BY CLNTC.CODE, CLNTC.DEFINITION_, STRNS.TRCODE " +

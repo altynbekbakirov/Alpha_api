@@ -60,6 +60,12 @@ public class SaleService {
         return sales;
     }
 
+    public List<SaleWare> getWareTotals(int firmNo, int periodNo, String begDate, String endDate) throws NotFoundException {
+        List<SaleWare> sales = saleRepository.getWareTotals(firmNo, periodNo, begDate, endDate);
+        if (sales.size() == 0) throw new NotFoundException("No records");
+        return sales;
+    }
+
     public List<SaleClient> getSalesClient(int firmNo, int periodNo, String begDate, String endDate, int sourceIndex, String filterName) throws NotFoundException {
         List<SaleClient> sales = saleRepository.getSalesClient(firmNo, periodNo, begDate, endDate, sourceIndex, filterName);
         if (sales.size() == 0) throw new NotFoundException("No records");
